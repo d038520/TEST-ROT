@@ -1,4 +1,4 @@
 module.exports = {
-	VERIFY_TOKEN: 'https://github.com/d038520/TEST-ROT.git',
-	PAGE_TOKEN: 'https://github.com/d038520/TEST-ROT.git'
+	VERIFY_TOKEN: 'your_verify_token_here',
+	PAGE_TOKEN: 'your_page_token_here'
 }
