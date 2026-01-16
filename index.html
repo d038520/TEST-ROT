@@ -279,7 +279,7 @@
                 state.inventory.push(state.lastMatch);
             }
             document.getElementById('col-count').innerText = state.inventory.length;
-            const rank = state.inventory.length < 3 ? "海岸實習生" : (state.inventory.length < 5 ? "淨灘觀察員" : "海洋辨識大師");
+            const rank = state.inventory.length < 3 ? "海岸實習生" : (state.inventory.length < 5 ? "淨灘分析師" : "海廢鑑定大師");
             document.getElementById('rank-name').innerText = rank;
             
             document.getElementById('modal').classList.replace('flex', 'hidden');
