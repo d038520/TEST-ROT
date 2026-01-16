@@ -41,12 +41,11 @@
             background-size: cover; height: 100%; position: relative;
         }
 
-        /* 聚光燈效果修正 */
+        /* 聚光燈效果 */
         .sample {
             position: absolute; 
             object-fit: contain;
             cursor: pointer;
-            /* 預設隱藏，只有滑鼠照到時才顯示 */
             -webkit-mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 0%, transparent 0%);
             mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 0%, transparent 0%);
             -webkit-mask-repeat: no-repeat;
@@ -55,10 +54,9 @@
             z-index: 10;
         }
 
-        /* 當滑鼠靠近時，擴大遮罩半徑 */
         .sample.active-light {
-            -webkit-mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 100px, transparent 150px);
-            mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 100px, transparent 150px);
+            -webkit-mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 80px, transparent 120px);
+            mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 80px, transparent 120px);
         }
 
         .sample:hover { transform: scale(1.1); }
@@ -89,7 +87,7 @@
                 <div class="bg-slate-900/90 px-8 py-4 rounded-3xl border border-slate-700 backdrop-blur-xl pointer-events-auto flex items-center gap-10 fade-in-up">
                     <div class="text-center">
                         <p class="text-slate-500 text-xs font-bold uppercase mb-1">已鑑定數量</p>
-                        <p class="text-2xl font-black text-sky-400"><span id="col-count">0</span> / 6</p>
+                        <p class="text-2xl font-black text-sky-400"><span id="col-count">0</span> / 7</p>
                     </div>
                     <div class="h-10 w-px bg-slate-700"></div>
                     <div class="text-center">
@@ -100,12 +98,13 @@
             </nav>
 
             <main id="view-beach" class="beach-bg">
-                <img src="image/Gemini_Generated_Image_11s0eg11s0eg11s0.png" class="sample w-48 h-48" style="top: 55%; left: 10%" onclick="openLab(0)">
-                <img src="image/Gemini_Generated_Image_28jq4q28jq4q28jq.png" class="sample w-48 h-48" style="top: 65%; left: 25%" onclick="openLab(1)">
-                <img src="image/Gemini_Generated_Image_3lpc8u3lpc8u3lpc.png" class="sample w-48 h-48" style="top: 72%; left: 40%" onclick="openLab(2)">
-                <img src="image/Gemini_Generated_Image_4d61qi4d61qi4d61.png" class="sample w-48 h-48" style="top: 60%; left: 55%" onclick="openLab(3)">
-                <img src="image/Gemini_Generated_Image_rqk2h2rqk2h2rqk2.png" class="sample w-48 h-48" style="top: 78%; left: 70%" onclick="openLab(4)">
-                <img src="image/Gemini_Generated_Image_vhpi3kvhpi3kvhpi.png" class="sample w-48 h-48" style="top: 68%; left: 82%" onclick="openLab(5)">
+                <img src="image/Gemini_Generated_Image_11s0eg11s0eg11s0.png" class="sample w-40 h-40" style="top: 50%; left: 10%" onclick="openLab(0)">
+                <img src="image/Gemini_Generated_Image_28jq4q28jq4q28jq.png" class="sample w-40 h-40" style="top: 60%; left: 20%" onclick="openLab(1)">
+                <img src="image/Gemini_Generated_Image_3lpc8u3lpc8u3lpc.png" class="sample w-40 h-40" style="top: 65%; left: 30%" onclick="openLab(2)">
+                <img src="image/Gemini_Generated_Image_4d61qi4d61qi4d61.png" class="sample w-40 h-40" style="top: 70%; left: 40%" onclick="openLab(3)">
+                <img src="image/Gemini_Generated_Image_rqk2h2rqk2h2rqk2.png" class="sample w-40 h-40" style="top: 75%; left: 50%" onclick="openLab(4)">
+                <img src="image/Gemini_Generated_Image_vhpi3kvhpi3kvhpi.png" class="sample w-40 h-40" style="top: 80%; left: 60%" onclick="openLab(5)">
+                <img src="image/Gemini_Generated_Image_zgela4zgela4zgel.png" class="sample w-40 h-40" style="top: 85%; left: 70%" onclick="openLab(6)">
             </main>
 
             <div id="modal" class="absolute inset-0 z-[100] hidden bg-black/95 items-center justify-center p-20">
@@ -129,7 +128,7 @@
                             <div id="q-options" class="opt-grid custom-scroll overflow-y-auto flex-1 pr-4"></div>
                         </div>
 
-                        <div id="result-ui" class="hidden h-full flex flex-col justify-center">
+                        <div id="result-ui" class="hidden h-full flex flex-col justify-center animate-in fade-in">
                             <div class="bg-sky-500/10 border border-sky-500/30 p-12 rounded-[3rem] mb-12">
                                 <p class="text-sky-500 text-sm font-black tracking-widest mb-3 uppercase">Classification Result</p>
                                 <h2 id="res-name" class="text-5xl font-black text-white italic mb-4">---</h2>
@@ -148,15 +147,21 @@
                 </div>
             </div>
 
-            <section id="report-page" class="hidden absolute inset-0 z-[200] bg-slate-950 overflow-y-auto p-24">
+            <section id="report-page" class="hidden absolute inset-0 z-[200] bg-slate-950 overflow-y-auto p-24 custom-scroll">
                 <div class="max-w-7xl mx-auto">
                     <div class="text-center mb-24">
                         <h2 class="text-8xl font-black italic tracking-tighter text-white mb-6">MISSION ARCHIVE</h2>
-                        <p class="text-slate-400 text-2xl">共同守護海岸線的偵探檔案</p>
+                        <div class="h-1 w-40 bg-sky-500 mx-auto mb-10"></div>
+                        <p class="text-slate-400 text-2xl max-w-4xl mx-auto leading-relaxed mb-10">
+                            目前已有超過 <span id="user-count" class="text-white font-bold">0</span> 位偵探參與，<br>
+                            我們已共同釐清了 <span id="debris-count" class="text-sky-400 font-bold">0</span> 件廢棄物的身世。
+                        </p>
                     </div>
+
                     <div id="report-grid" class="grid grid-cols-3 gap-10 mb-24"></div>
-                    <div class="text-center">
-                        <button onclick="location.reload()" class="bg-sky-600 px-16 py-8 rounded-[2.5rem] font-black text-xl hover:bg-sky-500 transition-all">重新巡視海灘</button>
+
+                    <div class="text-center mb-20">
+                        <button onclick="location.reload()" class="bg-sky-600 px-16 py-8 rounded-[2.5rem] font-black text-xl hover:bg-sky-500 transition-all shadow-2xl">重新巡視海灘</button>
                     </div>
                 </div>
             </section>
@@ -164,14 +169,14 @@
     </div>
 
     <script>
-        // 修正資料組的圖片路徑，與 HTML 對應
         const materials = [
             { id: 0, name: '玻璃 (Glass)', years: '100萬年', tags: ['透光', '半透光', '極硬不動', '鋒利', '圓滑'], timeline: '這塊玻璃碎片若在古埃及金字塔建造時丟入海中，今天依然如新。', img: 'image/Gemini_Generated_Image_11s0eg11s0eg11s0.png' },
             { id: 1, name: '塑膠 (Plastic)', years: '450年', tags: ['半透光', '不透光', '會彎曲', '變形', '鋒利', '斷裂面', '印刷文字', '接縫', '純色', '彩色'], timeline: '麥哲倫環球航行時代丟棄的塑膠，現在才剛開始脆化成微塑膠。', img: 'image/Gemini_Generated_Image_28jq4q28jq4q28jq.png' },
             { id: 2, name: '金屬 (Metal)', years: '200年', tags: ['不透光', '會彎曲', '變形', '鋒利', '斷裂面', '生鏽', '金屬光澤', '塗漆'], timeline: '清朝末年的鐵罐丟入海中，到今天可能剛好鏽蝕殆盡。', img: 'image/Gemini_Generated_Image_3lpc8u3lpc8u3lpc.png' },
             { id: 3, name: '保麗龍 (Styrofoam)', years: '500年', tags: ['不透光', '碎裂', '粉碎', '有孔隙', '格狀結構', '粉末'], timeline: '保麗龍看似弱不禁風，卻能從美國獨立戰爭時期一直漂流到今天。', img: 'image/Gemini_Generated_Image_4d61qi4d61qi4d61.png' },
             { id: 4, name: '陶瓷 (Ceramic)', years: '永久', tags: ['不透光', '極硬不動', '鋒利', '斷裂面', '圓滑', '平順', '純色', '彩色'], timeline: '這是人類文明留給萬年後地球生物的永久性「人造化石」。', img: 'image/Gemini_Generated_Image_rqk2h2rqk2h2rqk2.png' },
-            { id: 5, name: '橡膠 (Rubber)', years: '80年', tags: ['不透光', '有彈性', '變形', '有纖維感', '粗糙', '規則紋路'], timeline: '二戰時期掉進海裡的輪胎碎片，現在依然保留著強大的彈性。', img: 'image/Gemini_Generated_Image_vhpi3kvhpi3kvhpi.png' }
+            { id: 5, name: '橡膠 (Rubber)', years: '80年', tags: ['不透光', '有彈性', '變形', '有纖維感', '粗糙', '規則紋路'], timeline: '二戰時期掉進海裡的輪胎碎片，現在依然保留著強大的彈性。', img: 'image/Gemini_Generated_Image_vhpi3kvhpi3kvhpi.png' },
+            { id: 6, name: '複合廢棄物 (Mixed Debris)', years: '不明', tags: ['不透光', '極硬不動', '彩色', '斷裂面'], timeline: '這類混和材料最難處理，它們在海洋中破碎後會造成更深遠的危害。', img: 'image/Gemini_Generated_Image_zgela4zgela4zgel.png' }
         ];
 
         const questions = [
@@ -189,11 +194,9 @@
             scaler.style.transform = `scale(${scale})`;
             state.currentScale = scale;
         }
-
         window.addEventListener('resize', handleResize);
         window.addEventListener('load', handleResize);
 
-        // 修正聚光燈互動邏輯
         const cursor = document.getElementById('custom-cursor');
         const container = document.getElementById('game-container');
         
@@ -204,7 +207,6 @@
             cursor.style.left = x + 'px';
             cursor.style.top = y + 'px';
 
-            // 更新所有樣本的聚光燈座標
             document.querySelectorAll('.sample').forEach(s => {
                 const sRect = s.getBoundingClientRect();
                 const localX = ((e.clientX - sRect.left) / sRect.width) * 100;
@@ -212,9 +214,8 @@
                 s.style.setProperty('--mask-x', `${localX}%`);
                 s.style.setProperty('--mask-y', `${localY}%`);
 
-                // 計算滑鼠與圖片中心的距離
                 const dist = Math.hypot(e.clientX - (sRect.left + sRect.width/2), e.clientY - (sRect.top + sRect.height/2));
-                if(dist < 200) s.classList.add('active-light');
+                if(dist < 180) s.classList.add('active-light');
                 else s.classList.remove('active-light');
             });
         });
@@ -278,14 +279,35 @@
             if(goToReport) showFinalReport();
         }
 
+        // 動態跳號動畫
+        function animateCounter(id, start, end, duration) {
+            const obj = document.getElementById(id);
+            if (!obj) return;
+            let current = start;
+            const range = end - start;
+            const increment = end > start ? 1 : -1;
+            const stepTime = Math.abs(Math.floor(duration / range));
+            const timer = setInterval(() => {
+                current += increment;
+                obj.innerText = current.toLocaleString();
+                if (current == end) clearInterval(timer);
+            }, stepTime);
+        }
+
         function showFinalReport() {
             document.getElementById('report-page').classList.remove('hidden');
+            
+            // 啟動動態數值動畫
+            animateCounter('user-count', 12400, 12482, 2000);
+            animateCounter('debris-count', 84200, 84291, 2000);
+
             const grid = document.getElementById('report-grid');
             grid.innerHTML = '';
             state.inventory.forEach(item => {
                 grid.innerHTML += `
-                    <div class="bg-slate-900 border border-slate-800 rounded-[3rem] p-10">
-                        <img src="${item.img}" class="w-full h-48 object-contain mb-8">
+                    <div class="bg-slate-900 border border-slate-800 rounded-[3rem] p-10 shadow-2xl hover:border-sky-500 transition-all group">
+                        <img src="${item.img}" class="w-full h-48 object-contain mb-8 group-hover:scale-110 transition-transform">
+                        <p class="text-sky-500 text-xs font-black tracking-widest uppercase mb-2">Authenticated</p>
                         <h4 class="text-3xl font-black mb-2">${item.name}</h4>
                         <p class="text-orange-500 font-black mb-4">${item.years}</p>
                         <p class="text-slate-400 text-sm italic">"${item.timeline}"</p>
