@@ -7,65 +7,42 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
-        
         :root { --app-width: 1920px; --app-height: 1080px; }
-
-        body { 
-            font-family: 'Noto Sans TC', sans-serif; 
-            background-color: #020617; color: #f1f5f9; 
-            margin: 0; display: flex; align-items: center; justify-content: center; 
-            height: 100vh; width: 100vw; overflow: hidden;
-        }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #020617; color: #f1f5f9; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; width: 100vw; overflow: hidden; }
+        #scaler { width: var(--app-width); height: var(--app-height); transform-origin: center center; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        #game-container { width: 100%; height: 100%; background: #020617; position: relative; overflow: hidden; box-shadow: 0 0 100px rgba(0,0,0,0.8); }
         
-        #scaler {
-            width: var(--app-width); height: var(--app-height);
-            transform-origin: center center; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        /* 偵探手電筒/放大鏡效果 */
+        #custom-cursor { 
+            width: 180px; height: 180px; border: 6px solid #38bdf8; border-radius: 50%; 
+            position: absolute; pointer-events: none; z-index: 9999; 
+            box-shadow: 0 0 50px rgba(56, 189, 248, 0.4), inset 0 0 20px rgba(56, 189, 248, 0.2); 
+            transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; transition: opacity 0.3s; 
         }
 
-        #game-container {
-            width: 100%; height: 100%; background: #020617; position: relative; overflow: hidden;
-            box-shadow: 0 0 100px rgba(0,0,0,0.8);
+        .beach-bg { 
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1920') center center; 
+            background-size: cover; height: 100%; position: relative; 
         }
 
-        /* 放大鏡與聚光燈效果 */
-        #custom-cursor {
-            width: 180px; height: 180px; border: 6px solid #38bdf8; border-radius: 50%;
-            position: absolute; pointer-events: none; z-index: 9999;
-            box-shadow: 0 0 50px rgba(56, 189, 248, 0.4), inset 0 0 20px rgba(56, 189, 248, 0.2);
-            transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center;
+        /* 廢棄物樣本 */
+        .sample { 
+            position: absolute; object-fit: contain; cursor: pointer; 
+            -webkit-mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 0%, transparent 0%); 
+            mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 0%, transparent 0%); 
+            -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; transition: transform 0.2s ease; z-index: 10; 
         }
-
-        .beach-bg {
-            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
-                        url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1920') center center;
-            background-size: cover; height: 100%; position: relative;
+        .sample.active-light { 
+            -webkit-mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 80px, transparent 120px); 
+            mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 80px, transparent 120px); 
         }
-
-        .sample {
-            position: absolute; object-fit: contain; cursor: pointer;
-            -webkit-mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 0%, transparent 0%);
-            mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 0%, transparent 0%);
-            -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-            transition: transform 0.2s ease; z-index: 10;
-        }
-
-        .sample.active-light {
-            -webkit-mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 80px, transparent 120px);
-            mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 80px, transparent 120px);
-        }
-
         .sample:hover { transform: scale(1.1); }
 
+        /* 選項按鈕樣式 */
         .opt-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        .opt-btn { 
-            @apply p-10 bg-slate-800/90 hover:bg-sky-600 rounded-[2.5rem] transition-all border border-slate-700 hover:border-white text-4xl font-black flex items-center gap-8;
-        }
+        .opt-btn { @apply p-10 bg-slate-800/90 hover:bg-sky-600 rounded-[2.5rem] transition-all border border-slate-700 hover:border-white text-4xl font-black flex items-center gap-8; }
 
-        .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; }
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .archive-title { font-style: italic; font-weight: 900; text-transform: uppercase; letter-spacing: -0.05em; }
     </style>
 </head>
 <body>
@@ -75,67 +52,48 @@
             <div id="custom-cursor">🔍</div>
 
             <nav class="absolute top-0 w-full z-50 p-10 flex justify-between items-start pointer-events-none">
-                <div class="fade-in-up">
-                    <span class="bg-sky-500 text-black px-3 py-1 rounded font-black text-sm tracking-widest uppercase">Detective Hub</span>
-                    <h1 class="text-4xl font-black mt-2 tracking-tighter italic">海洋廢棄物鑑定</h1>
+                <div>
+                    <span class="bg-sky-500 text-black px-3 py-1 rounded font-black text-sm tracking-widest uppercase">Detective Registry</span>
+                    <h1 class="text-4xl font-black mt-2 tracking-tighter italic">海廢身世鑑定所</h1>
                 </div>
-                <div class="bg-slate-900/90 px-8 py-4 rounded-3xl border border-slate-700 backdrop-blur-xl pointer-events-auto flex items-center gap-10 fade-in-up">
-                    <div class="text-center">
-                        <p class="text-slate-500 text-xs font-bold uppercase mb-1">已鑑定數量</p>
-                        <p class="text-2xl font-black text-sky-400"><span id="col-count">0</span> / 7</p>
-                    </div>
-                    <div class="h-10 w-px bg-slate-700"></div>
-                    <div class="text-center">
-                        <p class="text-slate-500 text-xs font-bold uppercase mb-1">鑑定師等級</p>
-                        <p id="rank-name" class="text-2xl font-black text-yellow-500 tracking-tight">海岸實習生</p>
-                    </div>
+                <div class="bg-slate-900/90 px-8 py-4 rounded-3xl border border-slate-700 backdrop-blur-xl pointer-events-auto">
+                    <p class="text-slate-500 text-xs font-bold uppercase mb-1">已解鎖偵探檔案</p>
+                    <p class="text-2xl font-black text-sky-400 text-center"><span id="col-count">0</span> / 7</p>
                 </div>
             </nav>
 
-            <main id="view-beach" class="beach-bg">
-                <img src="image/Gemini_Generated_Image_11s0eg11s0eg11s0.png" class="sample w-40 h-40" style="top: 50%; left: 10%" onclick="openLab(0)">
-                <img src="image/Gemini_Generated_Image_28jq4q28jq4q28jq.png" class="sample w-40 h-40" style="top: 60%; left: 20%" onclick="openLab(1)">
-                <img src="image/Gemini_Generated_Image_3lpc8u3lpc8u3lpc.png" class="sample w-40 h-40" style="top: 65%; left: 30%" onclick="openLab(2)">
-                <img src="image/Gemini_Generated_Image_4d61qi4d61qi4d61.png" class="sample w-40 h-40" style="top: 70%; left: 40%" onclick="openLab(3)">
-                <img src="image/Gemini_Generated_Image_rqk2h2rqk2h2rqk2.png" class="sample w-40 h-40" style="top: 75%; left: 50%" onclick="openLab(4)">
-                <img src="image/Gemini_Generated_Image_vhpi3kvhpi3kvhpi.png" class="sample w-40 h-40" style="top: 80%; left: 60%" onclick="openLab(5)">
-                <img src="image/Gemini_Generated_Image_zgela4zgela4zgel.png" class="sample w-40 h-40" style="top: 85%; left: 70%" onclick="openLab(6)">
+            <main class="beach-bg">
+                <img src="image/Gemini_Generated_Image_11s0eg11s0eg11s0.png" class="sample w-40 h-40" style="top: 45%; left: 15%" onclick="openLab(0)">
+                <img src="image/Gemini_Generated_Image_28jq4q28jq4q28jq.png" class="sample w-40 h-40" style="top: 60%; left: 25%" onclick="openLab(1)">
+                <img src="image/Gemini_Generated_Image_3lpc8u3lpc8u3lpc.png" class="sample w-40 h-40" style="top: 55%; left: 40%" onclick="openLab(2)">
+                <img src="image/Gemini_Generated_Image_4d61qi4d61qi4d61.png" class="sample w-40 h-40" style="top: 70%; left: 10%" onclick="openLab(3)">
+                <img src="image/Gemini_Generated_Image_rqk2h2rqk2h2rqk2.png" class="sample w-40 h-40" style="top: 75%; left: 35%" onclick="openLab(4)">
+                <img src="image/Gemini_Generated_Image_vhpi3kvhpi3kvhpi.png" class="sample w-40 h-40" style="top: 80%; left: 55%" onclick="openLab(5)">
+                <img src="image/Gemini_Generated_Image_zgela4zgela4zgel.png" class="sample w-40 h-40" style="top: 65%; left: 70%" onclick="openLab(6)">
             </main>
 
             <div id="modal" class="absolute inset-0 z-[100] hidden bg-black/95 items-center justify-center p-20">
                 <div class="bg-slate-900 border border-slate-800 w-full h-full rounded-[4rem] flex overflow-hidden shadow-2xl">
-                    <div class="w-1/2 bg-black relative flex items-center justify-center border-r border-slate-800">
-                        <div class="absolute top-12 left-12 z-20">
-                            <p class="text-sky-500 text-xs font-black tracking-[0.3em] uppercase mb-2">Specimen Analysis</p>
-                            <h3 class="text-4xl font-black italic">物件微觀觀察</h3>
-                        </div>
-                        <img id="lab-img" src="" class="w-full h-full object-contain p-20 relative z-10">
+                    <div class="w-1/2 bg-black flex items-center justify-center border-r border-slate-800">
+                        <img id="lab-img" src="" class="w-4/5 h-4/5 object-contain">
                     </div>
-                    <div class="w-1/2 p-24 flex flex-col justify-center h-full bg-slate-900">
+                    <div class="w-1/2 p-24 flex flex-col justify-center bg-slate-900">
                         <div id="quiz-ui" class="h-full flex flex-col">
-                            <div class="mb-12">
-                                <p class="text-sky-400 font-bold text-sm tracking-widest uppercase mb-2">Evidence Collection</p>
-                                <h2 id="q-title" class="text-5xl font-black mb-6">---</h2>
-                                <div class="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                                    <div id="q-bar" class="h-full bg-sky-500 transition-all duration-700"></div>
-                                </div>
-                            </div>
-                            <div id="q-options" class="opt-grid custom-scroll overflow-y-auto flex-1 pr-4"></div>
+                            <h2 id="q-title" class="text-5xl font-black mb-12">---</h2>
+                            <div id="q-options" class="opt-grid"></div>
                         </div>
 
                         <div id="result-ui" class="hidden h-full flex flex-col justify-center">
-                            <div class="bg-sky-500/10 border border-sky-500/30 p-12 rounded-[3rem] mb-12">
-                                <p class="text-sky-500 text-sm font-black tracking-widest mb-3 uppercase">Classification Result</p>
-                                <h2 id="res-name" class="text-5xl font-black text-white italic mb-4">---</h2>
-                                <p id="res-years" class="text-orange-500 font-black text-2xl tracking-wide"></p>
+                            <div id="feedback-badge" class="mb-6 inline-block w-max px-6 py-2 rounded-full font-black text-sm uppercase"></div>
+                            <div class="bg-slate-800/50 border border-slate-700 p-12 rounded-[3rem] mb-12">
+                                <p class="text-sky-500 text-sm font-black tracking-widest mb-3 uppercase">🔍 鑑定結果</p>
+                                <h2 id="res-name" class="text-6xl font-black text-white italic mb-4">---</h2>
+                                <p id="res-years" class="text-orange-500 font-black text-3xl"></p>
                             </div>
-                            <div class="space-y-6 mb-12">
-                                <h4 class="text-slate-500 text-xs font-black uppercase tracking-widest mb-3">身世解析</h4>
-                                <p id="res-timeline" class="text-slate-200 italic text-xl leading-relaxed"></p>
-                            </div>
+                            <p id="res-timeline" class="text-slate-200 italic text-xl leading-relaxed mb-12"></p>
                             <div class="grid grid-cols-2 gap-6">
-                                <button onclick="saveAndClose(false)" class="bg-slate-800 hover:bg-slate-700 py-6 rounded-3xl text-xl font-bold transition-all border border-slate-700">收錄並繼續鑑定</button>
-                                <button onclick="saveAndClose(true)" class="bg-sky-600 hover:bg-sky-500 py-6 rounded-3xl text-xl font-black transition-all shadow-xl shadow-sky-900/40">收錄並查看報告</button>
+                                <button id="btn-save" onclick="saveAndClose(false)" class="py-6 rounded-3xl text-xl font-bold border transition-all">---</button>
+                                <button onclick="saveAndClose(true)" class="bg-sky-600 hover:bg-sky-500 py-6 rounded-3xl text-xl font-black">查看存檔檔案館</button>
                             </div>
                         </div>
                     </div>
@@ -145,16 +103,12 @@
             <section id="report-page" class="hidden absolute inset-0 z-[200] bg-slate-950 overflow-y-auto p-24">
                 <div class="max-w-7xl mx-auto">
                     <div class="text-center mb-24">
-                        <h2 class="text-8xl font-black italic tracking-tighter text-white mb-6">MISSION ARCHIVE</h2>
-                        <div class="h-1 w-40 bg-sky-500 mx-auto mb-10"></div>
-                        <p class="text-slate-400 text-2xl max-w-4xl mx-auto leading-relaxed mb-10">
-                            目前已有超過 <span id="user-count" class="text-white font-bold">0</span> 位偵探參與，<br>
-                            我們已共同釐清了 <span id="debris-count" class="text-sky-400 font-bold">0</span> 件廢棄物的身世。
-                        </p>
+                        <h2 class="text-8xl archive-title text-white mb-6">MISSION ARCHIVE</h2>
+                        <p class="text-slate-400 text-2xl">共同守護海岸線的偵探檔案</p>
                     </div>
-                    <div id="report-grid" class="grid grid-cols-3 gap-10 mb-24"></div>
-                    <div class="text-center">
-                        <button onclick="location.reload()" class="bg-sky-600 px-16 py-8 rounded-[2.5rem] font-black text-xl hover:bg-sky-500 transition-all">重新巡視海灘</button>
+                    <div id="report-grid" class="grid grid-cols-3 gap-10"></div>
+                    <div class="text-center mt-24">
+                        <button onclick="location.reload()" class="bg-sky-600 px-16 py-8 rounded-[2.5rem] font-black text-xl">返回海灘巡邏</button>
                     </div>
                 </div>
             </section>
@@ -162,62 +116,56 @@
     </div>
 
     <script>
-        // 修正後的正確答案陣列
+        // 完全保留您提供的文案內容
         const materials = [
-            { id: 0, name: '陶 (Pottery)', years: '永久', tags: ['不透光', '極硬不動', '斷裂面', '粗糙'], timeline: '這是人類文明留給萬年後地球生物的永久性「人造化石」', img: 'image/Gemini_Generated_Image_11s0eg11s0eg11s0.png' },
-            { id: 1, name: '海玻璃 (Sea Glass)', years: '100萬年', tags: ['半透光', '極硬不動', '圓滑', '平順'], timeline: '玻璃在大海中磨礪成了寶石般的質地，但其化學成分卻能在海中存在百萬年。', img: 'image/Gemini_Generated_Image_28jq4q28jq4q28jq.png' },
-            { id: 2, name: '鐵 (Iron)', years: '50-200年', tags: ['不透光', '極硬不動', '生鏽', '純色'], timeline: '鐵製品在鹽分高的海邊會迅速氧化生鏽，最終回歸成紅褐色的氧化鐵粉末，清朝末年的鐵器丟入海中，到今天可能剛好鏽蝕殆盡。', img: 'image/Gemini_Generated_Image_3lpc8u3lpc8u3lpc.png' },
-            { id: 3, name: '玻璃 (Glass Bottle)', years: '100萬年', tags: ['透光', '極硬不動', '鋒利', '斷裂面'], timeline: '普通的玻璃瓶若不破碎，其結構穩定性足以跨越整個人類文明史。', img: 'image/Gemini_Generated_Image_4d61qi4d61qi4d61.png' },
-            { id: 4, name: '塑膠袋 (Plastic Bag)', years: '10-20年', tags: ['半透光', '會彎曲', '平順', '彩色'], timeline: '麥哲倫環球航行時代若有塑膠袋丟棄，直到今天才剛開始微塑膠化。它是海洋哺乳類最大的威脅之一，常被海龜誤認為美味的水母。', img: 'image/Gemini_Generated_Image_rqk2h2rqk2h2rqk2.png' },
-            { id: 5, name: '硬塑膠 (Hard Plastic)', years: '450年', tags: ['不透光', '會彎曲', '斷裂面', '接縫'], timeline: '堅硬的容器碎片，是海洋中長期存在的幽靈，持續危害海洋生態。', img: 'image/Gemini_Generated_Image_vhpi3kvhpi3kvhpi.png' },
-            { id: 6, name: '鋁 (Aluminum)', years: '80-200年', tags: ['不透光', '變形', '金屬光澤', '塗漆'], timeline: '鋁罐雖然比鐵耐腐蝕，二戰時期掉進海裡的鋁製罐頭或零件，現在依然保留著強大的金屬特徵，是海邊常見的人造廢棄物。', img: 'image/Gemini_Generated_Image_zgela4zgela4zgel.png' }
+            { id: 0, name: '陶', years: '永久', tags: ['不透光', '極硬不動', '粗糙', '純色'], timeline: '這是人類文明留給萬年後地球生物的永久性「人造化石」', img: 'image/Gemini_Generated_Image_11s0eg11s0eg11s0.png' },
+            { id: 1, name: '海玻璃', years: '100萬年', tags: ['半透光', '極硬不動', '圓滑', '純色'], timeline: '玻璃在大海中磨礪成了寶石般的質地，但其化學成分卻能在海中存在百萬年。', img: 'image/Gemini_Generated_Image_28jq4q28jq4q28jq.png' },
+            { id: 2, name: '鐵', years: '50-200年', tags: ['不透光', '極硬不動', '生鏽', '純色'], timeline: '鐵製品在鹽分高的海邊會迅速氧化生鏽，最終回歸成紅褐色的氧化鐵粉末，清朝末年的鐵器丟入海中，到今天可能剛好鏽蝕殆盡。', img: 'image/Gemini_Generated_Image_3lpc8u3lpc8u3lpc.png' },
+            { id: 3, name: '玻璃', years: '100萬年', tags: ['透光', '極硬不動', '鋒利', '純色'], timeline: '普通的玻璃瓶若不破碎，其結構穩定性足以跨越整個人類文明史。', img: 'image/Gemini_Generated_Image_4d61qi4d61qi4d61.png' },
+            { id: 4, name: '塑膠袋', years: '10-20年', tags: ['半透光', '會彎曲', '平順', '彩色'], timeline: '麥哲倫環球航行時代若有塑膠袋丟棄，直到今天才剛開始微塑膠化。它是海洋哺乳類最大的威脅之一，常被海龜誤認為美味的水母。', img: 'image/Gemini_Generated_Image_rqk2h2rqk2h2rqk2.png' },
+            { id: 5, name: '硬塑膠', years: '450年', tags: ['不透光', '會彎曲', '斷裂面', '接縫'], timeline: '堅硬的容器碎片，是海洋中長期存在的幽靈，持續危害海洋生態。', img: 'image/Gemini_Generated_Image_vhpi3kvhpi3kvhpi.png' },
+            { id: 6, name: '鋁', years: '80-200年', tags: ['不透光', '變形', '金屬光澤', '塗漆'], timeline: '鋁罐雖然比鐵耐腐蝕，二戰時期掉進海裡的鋁製罐頭或零件，現在依然保留著強大的金屬特徵，是海邊常見的人造廢棄物。', img: 'image/Gemini_Generated_Image_zgela4zgela4zgel.png' }
         ];
 
         const questions = [
-            { title: "這東西透光嗎？", options: ["透光", "半透光", "不透光"] },
-            { title: "物理壓力反應？", options: ["極硬不動", "會彎曲", "變形", "碎裂"] },
-            { title: "邊緣質感如何？", options: ["鋒利", "斷裂面", "圓滑", "平順", "粗糙"] },
-            { title: "表面特徵？", options: ["生鏽", "金屬光澤", "塗漆", "純色", "彩色", "接縫"] }
+            { title: "觀察透光性？", options: ["透光", "半透光", "不透光"] },
+            { title: "物理觸感與壓力？", options: ["極硬不動", "會彎曲", "變形", "碎裂"] },
+            { title: "邊緣受損狀態？", options: ["鋒利", "斷裂面", "圓滑", "平順", "粗糙"] },
+            { title: "表面視覺特徵？", options: ["生鏽", "金屬光澤", "塗漆", "純色", "彩色", "接縫"] }
         ];
 
-        let state = { step: 0, selected: [], inventory: [], currentScale: 1, lastMatch: null };
+        let state = { step: 0, userSelections: [], currentTarget: null, inventory: [], canCollect: false, currentScale: 1 };
 
+        // 縮放與手電筒邏輯
         function handleResize() {
-            const scaler = document.getElementById('scaler');
             const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-            scaler.style.transform = `scale(${scale})`;
+            document.getElementById('scaler').style.transform = `scale(${scale})`;
             state.currentScale = scale;
         }
         window.addEventListener('resize', handleResize);
         window.addEventListener('load', handleResize);
 
         const cursor = document.getElementById('custom-cursor');
-        const container = document.getElementById('game-container');
-        
         document.addEventListener('mousemove', e => {
-            const rect = container.getBoundingClientRect();
+            const rect = document.getElementById('game-container').getBoundingClientRect();
             const x = (e.clientX - rect.left) / state.currentScale;
             const y = (e.clientY - rect.top) / state.currentScale;
-            cursor.style.left = x + 'px';
-            cursor.style.top = y + 'px';
-
+            cursor.style.left = x + 'px'; cursor.style.top = y + 'px';
             document.querySelectorAll('.sample').forEach(s => {
                 const sRect = s.getBoundingClientRect();
-                const localX = ((e.clientX - sRect.left) / sRect.width) * 100;
-                const localY = ((e.clientY - sRect.top) / sRect.height) * 100;
-                s.style.setProperty('--mask-x', `${localX}%`);
-                s.style.setProperty('--mask-y', `${localY}%`);
+                const lX = ((e.clientX - sRect.left) / sRect.width) * 100;
+                const lY = ((e.clientY - sRect.top) / sRect.height) * 100;
+                s.style.setProperty('--mask-x', `${lX}%`); s.style.setProperty('--mask-y', `${lY}%`);
                 const dist = Math.hypot(e.clientX - (sRect.left + sRect.width/2), e.clientY - (sRect.top + sRect.height/2));
-                if(dist < 180) s.classList.add('active-light');
-                else s.classList.remove('active-light');
+                if(dist < 180) s.classList.add('active-light'); else s.classList.remove('active-light');
             });
         });
 
         function openLab(id) {
-            state.step = 0; state.selected = [];
+            state.step = 0; state.userSelections = []; state.currentTarget = materials[id];
             cursor.style.opacity = '0';
             document.getElementById('modal').classList.replace('hidden', 'flex');
-            document.getElementById('lab-img').src = materials[id].img;
+            document.getElementById('lab-img').src = state.currentTarget.img;
             document.getElementById('quiz-ui').classList.remove('hidden');
             document.getElementById('result-ui').classList.add('hidden');
             renderQ();
@@ -226,74 +174,68 @@
         function renderQ() {
             const q = questions[state.step];
             document.getElementById('q-title').innerText = q.title;
-            document.getElementById('q-bar').style.width = `${(state.step + 1) * 25}%`;
-            const box = document.getElementById('q-options');
-            box.innerHTML = '';
+            const box = document.getElementById('q-options'); box.innerHTML = '';
             q.options.forEach(opt => {
-                const b = document.createElement('button');
-                b.className = "opt-btn";
+                const b = document.createElement('button'); b.className = "opt-btn";
                 b.innerHTML = `<span class="w-3 h-3 rounded-full bg-sky-400"></span> ${opt}`;
                 b.onclick = () => {
-                    state.selected.push(opt);
+                    state.userSelections.push(opt);
                     if(state.step < 3) { state.step++; renderQ(); }
-                    else { match(); }
+                    else { calculateResult(); }
                 };
                 box.appendChild(b);
             });
         }
 
-        function match() {
-            let best = materials[0], max = -1;
-            materials.forEach(m => {
-                let s = 0;
-                state.selected.forEach(t => { if(m.tags.includes(t)) s++; });
-                if(s > max) { max = s; best = m; }
-            });
-            state.lastMatch = best;
+        function calculateResult() {
+            let score = 0;
+            state.userSelections.forEach(s => { if(state.currentTarget.tags.includes(s)) score++; });
+            
+            // 核心邏輯：命中 2 項以上才可收錄
+            state.canCollect = score >= 2;
+
+            const badge = document.getElementById('feedback-badge');
+            const btnSave = document.getElementById('btn-save');
+            
             document.getElementById('quiz-ui').classList.add('hidden');
             document.getElementById('result-ui').classList.remove('hidden');
-            document.getElementById('res-name').innerText = best.name;
-            document.getElementById('res-years').innerText = `消失預估：約 ${best.years}`;
-            document.getElementById('res-timeline').innerText = best.timeline;
+            document.getElementById('res-name').innerText = state.currentTarget.name;
+            document.getElementById('res-years').innerText = `環境降解時間：約 ${state.currentTarget.years}`;
+            document.getElementById('res-timeline').innerText = state.currentTarget.timeline;
+
+            if(state.canCollect) {
+                badge.innerText = `鑑定大成功 (命中 ${score} 項)：特徵吻合，解鎖檔案！`;
+                badge.className = "mb-6 inline-block w-max px-6 py-2 rounded-full font-black text-sm bg-sky-500 text-black";
+                btnSave.innerText = "收錄偵探檔案";
+                btnSave.className = "py-6 rounded-3xl text-xl font-bold border border-sky-500 text-sky-500 hover:bg-sky-500 hover:text-black";
+            } else {
+                badge.innerText = `鑑定失敗 (命中 ${score} 項)：觀察錯誤，無法解鎖檔案。`;
+                badge.className = "mb-6 inline-block w-max px-6 py-2 rounded-full font-black text-sm bg-red-600 text-white";
+                btnSave.innerText = "重新巡邏";
+                btnSave.className = "py-6 rounded-3xl text-xl font-bold border border-slate-700 text-slate-500";
+            }
         }
 
         function saveAndClose(goToReport) {
-            if(!state.inventory.find(i => i.id === state.lastMatch.id)) state.inventory.push(state.lastMatch);
+            if(state.canCollect && !state.inventory.find(i => i.id === state.currentTarget.id)) {
+                state.inventory.push(state.currentTarget);
+            }
             document.getElementById('col-count').innerText = state.inventory.length;
-            const rank = state.inventory.length < 3 ? "海岸實習生" : (state.inventory.length < 6 ? "淨灘分析師" : "海廢鑑定大師");
-            document.getElementById('rank-name').innerText = rank;
             document.getElementById('modal').classList.replace('flex', 'hidden');
             cursor.style.opacity = '1';
-            if(goToReport) showFinalReport();
+            if(goToReport) showFinalArchive();
         }
 
-        function animateCounter(id, start, end, duration) {
-            const obj = document.getElementById(id);
-            if (!obj) return;
-            let current = start;
-            const range = end - start;
-            const increment = end > start ? 1 : -1;
-            const stepTime = Math.abs(Math.floor(duration / range));
-            const timer = setInterval(() => {
-                current += increment;
-                obj.innerText = current.toLocaleString();
-                if (current == end) clearInterval(timer);
-            }, stepTime);
-        }
-
-        function showFinalReport() {
+        function showFinalArchive() {
             document.getElementById('report-page').classList.remove('hidden');
-            animateCounter('user-count', 12400, 12482, 2000);
-            animateCounter('debris-count', 84200, 84291, 2000);
-            const grid = document.getElementById('report-grid');
-            grid.innerHTML = '';
+            const grid = document.getElementById('report-grid'); grid.innerHTML = '';
             state.inventory.forEach(item => {
                 grid.innerHTML += `
-                    <div class="bg-slate-900 border border-slate-800 rounded-[3rem] p-10 group">
-                        <img src="${item.img}" class="w-full h-48 object-contain mb-8 group-hover:scale-110 transition-transform">
+                    <div class="bg-slate-900 border border-slate-800 rounded-[3rem] p-10 hover:border-sky-500 transition-all">
+                        <img src="${item.img}" class="w-full h-48 object-contain mb-8">
                         <h4 class="text-3xl font-black mb-2 text-sky-400">${item.name}</h4>
                         <p class="text-orange-500 font-black mb-4">${item.years}</p>
-                        <p class="text-slate-400 text-sm italic">"${item.timeline}"</p>
+                        <p class="text-slate-400 text-sm italic leading-relaxed">"${item.timeline}"</p>
                     </div>`;
             });
         }
