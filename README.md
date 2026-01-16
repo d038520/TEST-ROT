@@ -7,4 +7,4 @@
 * 提供即時預覽功能。
 
 ## 預覽連結 🔗
-(稍後我們開啟 GitHub Pages 後，再回來補上網址)
+https://d038520.github.io/TEST-ROT/
