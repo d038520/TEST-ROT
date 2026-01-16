@@ -12,7 +12,7 @@
         #scaler { width: var(--app-width); height: var(--app-height); transform-origin: center center; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         #game-container { width: 100%; height: 100%; background: #020617; position: relative; overflow: hidden; box-shadow: 0 0 100px rgba(0,0,0,0.8); }
         
-        /* 偵探手電筒/放大鏡效果 */
+        /* 手電筒效果 */
         #custom-cursor { 
             width: 180px; height: 180px; border: 6px solid #38bdf8; border-radius: 50%; 
             position: absolute; pointer-events: none; z-index: 9999; 
@@ -20,12 +20,8 @@
             transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; transition: opacity 0.3s; 
         }
 
-        .beach-bg { 
-            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1920') center center; 
-            background-size: cover; height: 100%; position: relative; 
-        }
+        .beach-bg { background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1920') center center; background-size: cover; height: 100%; position: relative; }
 
-        /* 廢棄物樣本 */
         .sample { 
             position: absolute; object-fit: contain; cursor: pointer; 
             -webkit-mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 0%, transparent 0%); 
@@ -36,12 +32,8 @@
             -webkit-mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 80px, transparent 120px); 
             mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 80px, transparent 120px); 
         }
-        .sample:hover { transform: scale(1.1); }
 
-        /* 選項按鈕樣式 */
-        .opt-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
         .opt-btn { @apply p-10 bg-slate-800/90 hover:bg-sky-600 rounded-[2.5rem] transition-all border border-slate-700 hover:border-white text-4xl font-black flex items-center gap-8; }
-
         .archive-title { font-style: italic; font-weight: 900; text-transform: uppercase; letter-spacing: -0.05em; }
     </style>
 </head>
@@ -80,7 +72,7 @@
                     <div class="w-1/2 p-24 flex flex-col justify-center bg-slate-900">
                         <div id="quiz-ui" class="h-full flex flex-col">
                             <h2 id="q-title" class="text-5xl font-black mb-12">---</h2>
-                            <div id="q-options" class="opt-grid"></div>
+                            <div id="q-options" class="grid grid-cols-1 gap-5"></div>
                         </div>
 
                         <div id="result-ui" class="hidden h-full flex flex-col justify-center">
@@ -92,7 +84,7 @@
                             </div>
                             <p id="res-timeline" class="text-slate-200 italic text-xl leading-relaxed mb-12"></p>
                             <div class="grid grid-cols-2 gap-6">
-                                <button id="btn-save" onclick="saveAndClose(false)" class="py-6 rounded-3xl text-xl font-bold border transition-all">---</button>
+                                <button id="btn-save" onclick="saveAndClose(false)" class="py-6 rounded-3xl text-xl font-bold border transition-all"></button>
                                 <button onclick="saveAndClose(true)" class="bg-sky-600 hover:bg-sky-500 py-6 rounded-3xl text-xl font-black">查看存檔檔案館</button>
                             </div>
                         </div>
@@ -104,7 +96,11 @@
                 <div class="max-w-7xl mx-auto">
                     <div class="text-center mb-24">
                         <h2 class="text-8xl archive-title text-white mb-6">MISSION ARCHIVE</h2>
-                        <p class="text-slate-400 text-2xl">共同守護海岸線的偵探檔案</p>
+                        <div class="h-1 w-40 bg-sky-500 mx-auto mb-10"></div>
+                        <p class="text-slate-400 text-2xl max-w-4xl mx-auto leading-relaxed mb-10">
+                            目前已有超過 <span id="user-count" class="text-white font-bold">0</span> 位偵探參與，<br>
+                            我們已共同釐清了 <span id="debris-count" class="text-sky-400 font-bold">0</span> 件廢棄物的身世。
+                        </p>
                     </div>
                     <div id="report-grid" class="grid grid-cols-3 gap-10"></div>
                     <div class="text-center mt-24">
@@ -116,7 +112,6 @@
     </div>
 
     <script>
-        // 完全保留您提供的文案內容
         const materials = [
             { id: 0, name: '陶', years: '永久', tags: ['不透光', '極硬不動', '粗糙', '純色'], timeline: '這是人類文明留給萬年後地球生物的永久性「人造化石」', img: 'image/Gemini_Generated_Image_11s0eg11s0eg11s0.png' },
             { id: 1, name: '海玻璃', years: '100萬年', tags: ['半透光', '極硬不動', '圓滑', '純色'], timeline: '玻璃在大海中磨礪成了寶石般的質地，但其化學成分卻能在海中存在百萬年。', img: 'image/Gemini_Generated_Image_28jq4q28jq4q28jq.png' },
@@ -136,7 +131,19 @@
 
         let state = { step: 0, userSelections: [], currentTarget: null, inventory: [], canCollect: false, currentScale: 1 };
 
-        // 縮放與手電筒邏輯
+        function animateValue(id, start, end, duration) {
+            const obj = document.getElementById(id);
+            if (!obj) return;
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerText = Math.floor(progress * (end - start) + start).toLocaleString();
+                if (progress < 1) window.requestAnimationFrame(step);
+            };
+            window.requestAnimationFrame(step);
+        }
+
         function handleResize() {
             const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
             document.getElementById('scaler').style.transform = `scale(${scale})`;
@@ -190,8 +197,6 @@
         function calculateResult() {
             let score = 0;
             state.userSelections.forEach(s => { if(state.currentTarget.tags.includes(s)) score++; });
-            
-            // 核心邏輯：命中 2 項以上才可收錄
             state.canCollect = score >= 2;
 
             const badge = document.getElementById('feedback-badge');
@@ -204,14 +209,14 @@
             document.getElementById('res-timeline').innerText = state.currentTarget.timeline;
 
             if(state.canCollect) {
-                badge.innerText = `鑑定大成功 (命中 ${score} 項)：特徵吻合，解鎖檔案！`;
+                badge.innerText = `鑑定完成 (命中 ${score}/4)：特徵吻合！`;
                 badge.className = "mb-6 inline-block w-max px-6 py-2 rounded-full font-black text-sm bg-sky-500 text-black";
                 btnSave.innerText = "收錄偵探檔案";
                 btnSave.className = "py-6 rounded-3xl text-xl font-bold border border-sky-500 text-sky-500 hover:bg-sky-500 hover:text-black";
             } else {
-                badge.innerText = `鑑定失敗 (命中 ${score} 項)：觀察錯誤，無法解鎖檔案。`;
+                badge.innerText = `鑑定失敗 (命中 ${score}/4)：觀察不足。`;
                 badge.className = "mb-6 inline-block w-max px-6 py-2 rounded-full font-black text-sm bg-red-600 text-white";
-                btnSave.innerText = "重新巡邏";
+                btnSave.innerText = "返回巡邏";
                 btnSave.className = "py-6 rounded-3xl text-xl font-bold border border-slate-700 text-slate-500";
             }
         }
@@ -229,9 +234,14 @@
         function showFinalArchive() {
             document.getElementById('report-page').classList.remove('hidden');
             const grid = document.getElementById('report-grid'); grid.innerHTML = '';
+            
+            // 觸發動態計數器
+            animateValue("user-count", 12400, 12482, 2000);
+            animateValue("debris-count", 84200, 84291, 2000);
+
             state.inventory.forEach(item => {
                 grid.innerHTML += `
-                    <div class="bg-slate-900 border border-slate-800 rounded-[3rem] p-10 hover:border-sky-500 transition-all">
+                    <div class="bg-slate-900 border border-slate-800 rounded-[3rem] p-10">
                         <img src="${item.img}" class="w-full h-48 object-contain mb-8">
                         <h4 class="text-3xl font-black mb-2 text-sky-400">${item.name}</h4>
                         <p class="text-orange-500 font-black mb-4">${item.years}</p>
