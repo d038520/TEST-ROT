@@ -41,27 +41,28 @@
             background-size: cover; height: 100%; position: relative;
         }
 
-        /* 聚光燈效果 */
+        /* 聚光燈效果修正 */
         .sample {
             position: absolute; 
             object-fit: contain;
             cursor: pointer;
-            -webkit-mask-image: radial-gradient(circle at var(--mask-x, 0%) var(--mask-y, 0%), black 0%, transparent 0%);
-            mask-image: radial-gradient(circle at var(--mask-x, 0%) var(--mask-y, 0%), black 0%, transparent 0%);
+            /* 預設隱藏，只有滑鼠照到時才顯示 */
+            -webkit-mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 0%, transparent 0%);
+            mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 0%, transparent 0%);
             -webkit-mask-repeat: no-repeat;
             mask-repeat: no-repeat;
             transition: transform 0.2s ease;
             z-index: 10;
         }
 
-        .sample.active {
-            -webkit-mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 80px, transparent 100px);
-            mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 80px, transparent 100px);
+        /* 當滑鼠靠近時，擴大遮罩半徑 */
+        .sample.active-light {
+            -webkit-mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 100px, transparent 150px);
+            mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 100px, transparent 150px);
         }
 
-        .sample:hover { transform: scale(1.05); }
+        .sample:hover { transform: scale(1.1); }
 
-        /* 選項 UI */
         .opt-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
         .opt-btn { 
             @apply p-10 bg-slate-800/90 hover:bg-sky-600 rounded-[2.5rem] transition-all border border-slate-700 hover:border-white text-4xl font-black flex items-center gap-8;
@@ -80,7 +81,6 @@
         <div id="game-container">
             <div id="custom-cursor">🔍</div>
 
-            <!-- 頂部導覽列 -->
             <nav class="absolute top-0 w-full z-50 p-10 flex justify-between items-start pointer-events-none">
                 <div class="fade-in-up">
                     <span class="bg-sky-500 text-black px-3 py-1 rounded font-black text-sm tracking-widest uppercase">Detective Hub</span>
@@ -99,18 +99,15 @@
                 </div>
             </nav>
 
-            <!-- 海灘巡視 -->
             <main id="view-beach" class="beach-bg">
-                <img src="image/Gemini_Generated_Image_11s0eg11s0eg11s0.png" class="sample w-40 h-40" style="top: 50%; left: 10%" onclick="openLab(0)">
-                <img src="image/Gemini_Generated_Image_28jq4q28jq4q28jq.png" class="sample w-40 h-40" style="top: 60%; left: 20%" onclick="openLab(1)">
-                <img src="image/Gemini_Generated_Image_3lpc8u3lpc8u3lpc.png" class="sample w-40 h-40" style="top: 65%; left: 30%" onclick="openLab(2)">
-                <img src="image/Gemini_Generated_Image_4d61qi4d61qi4d61.png" class="sample w-40 h-40" style="top: 70%; left: 40%" onclick="openLab(3)">
-                <img src="image/Gemini_Generated_Image_rqk2h2rqk2h2rqk2.png" class="sample w-40 h-40" style="top: 75%; left: 50%" onclick="openLab(4)">
-                <img src="image/Gemini_Generated_Image_vhpi3kvhpi3kvhpi.png" class="sample w-40 h-40" style="top: 80%; left: 60%" onclick="openLab(5)">
-                <img src="image/Gemini_Generated_Image_zgela4zgela4zgel.png" class="sample w-40 h-40" style="top: 85%; left: 70%" onclick="openLab(6)">
+                <img src="image/Gemini_Generated_Image_11s0eg11s0eg11s0.png" class="sample w-48 h-48" style="top: 55%; left: 10%" onclick="openLab(0)">
+                <img src="image/Gemini_Generated_Image_28jq4q28jq4q28jq.png" class="sample w-48 h-48" style="top: 65%; left: 25%" onclick="openLab(1)">
+                <img src="image/Gemini_Generated_Image_3lpc8u3lpc8u3lpc.png" class="sample w-48 h-48" style="top: 72%; left: 40%" onclick="openLab(2)">
+                <img src="image/Gemini_Generated_Image_4d61qi4d61qi4d61.png" class="sample w-48 h-48" style="top: 60%; left: 55%" onclick="openLab(3)">
+                <img src="image/Gemini_Generated_Image_rqk2h2rqk2h2rqk2.png" class="sample w-48 h-48" style="top: 78%; left: 70%" onclick="openLab(4)">
+                <img src="image/Gemini_Generated_Image_vhpi3kvhpi3kvhpi.png" class="sample w-48 h-48" style="top: 68%; left: 82%" onclick="openLab(5)">
             </main>
 
-            <!-- 鑑定 Modal -->
             <div id="modal" class="absolute inset-0 z-[100] hidden bg-black/95 items-center justify-center p-20">
                 <div class="bg-slate-900 border border-slate-800 w-full h-full rounded-[4rem] flex overflow-hidden shadow-2xl">
                     <div class="w-1/2 bg-black relative flex items-center justify-center border-r border-slate-800">
@@ -119,7 +116,6 @@
                             <h3 class="text-4xl font-black italic">物件微觀觀察</h3>
                         </div>
                         <img id="lab-img" src="" class="w-full h-full object-contain p-20 relative z-10">
-                        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#020617_90%)] z-15"></div>
                     </div>
                     <div class="w-1/2 p-24 flex flex-col justify-center h-full bg-slate-900">
                         <div id="quiz-ui" class="h-full flex flex-col">
@@ -133,8 +129,7 @@
                             <div id="q-options" class="opt-grid custom-scroll overflow-y-auto flex-1 pr-4"></div>
                         </div>
 
-                        <!-- 揭曉與分支選擇 -->
-                        <div id="result-ui" class="hidden h-full flex flex-col justify-center animate-in fade-in">
+                        <div id="result-ui" class="hidden h-full flex flex-col justify-center">
                             <div class="bg-sky-500/10 border border-sky-500/30 p-12 rounded-[3rem] mb-12">
                                 <p class="text-sky-500 text-sm font-black tracking-widest mb-3 uppercase">Classification Result</p>
                                 <h2 id="res-name" class="text-5xl font-black text-white italic mb-4">---</h2>
@@ -144,7 +139,6 @@
                                 <h4 class="text-slate-500 text-xs font-black uppercase tracking-widest mb-3">身世解析</h4>
                                 <p id="res-timeline" class="text-slate-200 italic text-xl leading-relaxed"></p>
                             </div>
-                            <!-- 分支按鈕 -->
                             <div class="grid grid-cols-2 gap-6">
                                 <button onclick="saveAndClose(false)" class="bg-slate-800 hover:bg-slate-700 py-6 rounded-3xl text-xl font-bold transition-all border border-slate-700">收錄並繼續鑑定</button>
                                 <button onclick="saveAndClose(true)" class="bg-sky-600 hover:bg-sky-500 py-6 rounded-3xl text-xl font-black transition-all shadow-xl shadow-sky-900/40">收錄並查看報告</button>
@@ -154,46 +148,15 @@
                 </div>
             </div>
 
-            <!-- 歸屬感結尾報告 -->
-            <section id="report-page" class="hidden absolute inset-0 z-[200] bg-slate-950 overflow-y-auto p-24 custom-scroll">
+            <section id="report-page" class="hidden absolute inset-0 z-[200] bg-slate-950 overflow-y-auto p-24">
                 <div class="max-w-7xl mx-auto">
-                    <div class="text-center mb-24 fade-in-up">
+                    <div class="text-center mb-24">
                         <h2 class="text-8xl font-black italic tracking-tighter text-white mb-6">MISSION ARCHIVE</h2>
-                        <div class="h-1 w-40 bg-sky-500 mx-auto mb-10"></div>
-                        <p class="text-slate-400 text-2xl max-w-4xl mx-auto leading-relaxed mb-10">
-                            你並不孤單。目前已有超過 <span id="user-count" class="text-white font-bold count-up">0</span> 位偵探和你一樣行走在海岸線，<br>
-                            我們已共同釐清了 <span id="debris-count" class="text-sky-400 font-bold count-up">0</span> 件廢棄物的身世。
-                        </p>
+                        <p class="text-slate-400 text-2xl">共同守護海岸線的偵探檔案</p>
                     </div>
-
-                    <!-- 勳章區 -->
-                    <div class="bg-slate-900 border border-slate-800 rounded-[4rem] p-16 mb-20 flex items-center justify-between fade-in-up">
-                        <div class="flex items-center gap-12">
-                            <div id="final-medal" class="w-40 h-40 bg-yellow-500/20 border-4 border-yellow-500 rounded-full flex items-center justify-center text-6xl shadow-[0_0_50px_rgba(234,179,8,0.2)] animate-pulse">🏆</div>
-                            <div>
-                                <h3 id="final-rank-title" class="text-5xl font-black text-yellow-500 mb-3 italic tracking-tight">---</h3>
-                                <p class="text-slate-400 text-xl italic">感謝你對環境教育的專業貢獻，這份檔案將成為守護海洋的重要依據。</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-slate-500 text-sm font-bold uppercase tracking-widest mb-2">已收錄檔案卡</p>
-                            <p class="text-6xl font-black text-white"><span id="final-total">0</span> / 06</p>
-                        </div>
-                    </div>
-
-                    <!-- 鑑定檔案卡展示 -->
-                    <div id="report-grid" class="grid grid-cols-3 gap-10 mb-24 fade-in-up"></div>
-
-                    <!-- 社群分享與互動 -->
-                    <div class="text-center mb-20 fade-in-up">
-                        <div class="flex gap-6 justify-center">
-                            <button onclick="location.reload()" class="bg-slate-800 px-16 py-8 rounded-[2.5rem] font-black text-xl hover:bg-slate-700 transition-all border border-slate-700">重新巡視海灘</button>
-                            <button onclick="shareArchives()" class="bg-sky-600 px-16 py-8 rounded-[2.5rem] font-black text-xl hover:bg-sky-500 transition-all shadow-2xl shadow-sky-900/60 flex items-center gap-4">
-                                <span>分享偵探身世卡片</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                            </button>
-                        </div>
-                        <p class="text-slate-500 mt-8 text-sm uppercase tracking-widest">Share to spread awareness and inspire others</p>
+                    <div id="report-grid" class="grid grid-cols-3 gap-10 mb-24"></div>
+                    <div class="text-center">
+                        <button onclick="location.reload()" class="bg-sky-600 px-16 py-8 rounded-[2.5rem] font-black text-xl hover:bg-sky-500 transition-all">重新巡視海灘</button>
                     </div>
                 </div>
             </section>
@@ -201,13 +164,14 @@
     </div>
 
     <script>
+        // 修正資料組的圖片路徑，與 HTML 對應
         const materials = [
-            { id: 0, name: '玻璃 (Glass)', years: '100萬年', tags: ['透光', '半透光', '極硬不動', '鋒利', '圓滑'], timeline: '這塊玻璃碎片若在古埃及金字塔建造時丟入海中，今天依然如新。', img: 'image_f837bd.png' },
-            { id: 1, name: '塑膠 (Plastic)', years: '450年', tags: ['半透光', '不透光', '會彎曲', '變形', '鋒利', '斷裂面', '印刷文字', '接縫', '純色', '彩色'], timeline: '麥哲倫環球航行時代丟棄的塑膠，現在才剛開始脆化成微塑膠。', img: 'image_f837e1.png' },
-            { id: 2, name: '金屬 (Metal)', years: '200年', tags: ['不透光', '會彎曲', '變形', '鋒利', '斷裂面', '生鏽', '金屬光澤', '塗漆'], timeline: '清朝末年的鐵罐丟入海中，到今天可能剛好鏽蝕殆盡。', img: 'image_f8343e.png' },
-            { id: 3, name: '保麗龍 (Styrofoam)', years: '500年', tags: ['不透光', '碎裂', '粉碎', '有孔隙', '格狀結構', '粉末'], timeline: '保麗龍看似弱不禁風，卻能從美國獨立戰爭時期一直漂流到今天。', img: 'image_f83b42.png' },
-            { id: 4, name: '陶瓷 (Ceramic)', years: '永久', tags: ['不透光', '極硬不動', '鋒利', '斷裂面', '圓滑', '平順', '純色', '彩色'], timeline: '這是人類文明留給萬年後地球生物的永久性「人造化石」。', img: 'image_f833c3.png' },
-            { id: 5, name: '橡膠 (Rubber)', years: '80年', tags: ['不透光', '有彈性', '變形', '有纖維感', '粗糙', '規則紋路'], timeline: '二戰時期掉進海裡的輪胎碎片，現在依然保留著強大的彈性。', img: 'image_f83365.png' }
+            { id: 0, name: '玻璃 (Glass)', years: '100萬年', tags: ['透光', '半透光', '極硬不動', '鋒利', '圓滑'], timeline: '這塊玻璃碎片若在古埃及金字塔建造時丟入海中，今天依然如新。', img: 'image/Gemini_Generated_Image_11s0eg11s0eg11s0.png' },
+            { id: 1, name: '塑膠 (Plastic)', years: '450年', tags: ['半透光', '不透光', '會彎曲', '變形', '鋒利', '斷裂面', '印刷文字', '接縫', '純色', '彩色'], timeline: '麥哲倫環球航行時代丟棄的塑膠，現在才剛開始脆化成微塑膠。', img: 'image/Gemini_Generated_Image_28jq4q28jq4q28jq.png' },
+            { id: 2, name: '金屬 (Metal)', years: '200年', tags: ['不透光', '會彎曲', '變形', '鋒利', '斷裂面', '生鏽', '金屬光澤', '塗漆'], timeline: '清朝末年的鐵罐丟入海中，到今天可能剛好鏽蝕殆盡。', img: 'image/Gemini_Generated_Image_3lpc8u3lpc8u3lpc.png' },
+            { id: 3, name: '保麗龍 (Styrofoam)', years: '500年', tags: ['不透光', '碎裂', '粉碎', '有孔隙', '格狀結構', '粉末'], timeline: '保麗龍看似弱不禁風，卻能從美國獨立戰爭時期一直漂流到今天。', img: 'image/Gemini_Generated_Image_4d61qi4d61qi4d61.png' },
+            { id: 4, name: '陶瓷 (Ceramic)', years: '永久', tags: ['不透光', '極硬不動', '鋒利', '斷裂面', '圓滑', '平順', '純色', '彩色'], timeline: '這是人類文明留給萬年後地球生物的永久性「人造化石」。', img: 'image/Gemini_Generated_Image_rqk2h2rqk2h2rqk2.png' },
+            { id: 5, name: '橡膠 (Rubber)', years: '80年', tags: ['不透光', '有彈性', '變形', '有纖維感', '粗糙', '規則紋路'], timeline: '二戰時期掉進海裡的輪胎碎片，現在依然保留著強大的彈性。', img: 'image/Gemini_Generated_Image_vhpi3kvhpi3kvhpi.png' }
         ];
 
         const questions = [
@@ -229,19 +193,35 @@
         window.addEventListener('resize', handleResize);
         window.addEventListener('load', handleResize);
 
+        // 修正聚光燈互動邏輯
         const cursor = document.getElementById('custom-cursor');
         const container = document.getElementById('game-container');
+        
         document.addEventListener('mousemove', e => {
             const rect = container.getBoundingClientRect();
             const x = (e.clientX - rect.left) / state.currentScale;
             const y = (e.clientY - rect.top) / state.currentScale;
             cursor.style.left = x + 'px';
             cursor.style.top = y + 'px';
+
+            // 更新所有樣本的聚光燈座標
+            document.querySelectorAll('.sample').forEach(s => {
+                const sRect = s.getBoundingClientRect();
+                const localX = ((e.clientX - sRect.left) / sRect.width) * 100;
+                const localY = ((e.clientY - sRect.top) / sRect.height) * 100;
+                s.style.setProperty('--mask-x', `${localX}%`);
+                s.style.setProperty('--mask-y', `${localY}%`);
+
+                // 計算滑鼠與圖片中心的距離
+                const dist = Math.hypot(e.clientX - (sRect.left + sRect.width/2), e.clientY - (sRect.top + sRect.height/2));
+                if(dist < 200) s.classList.add('active-light');
+                else s.classList.remove('active-light');
+            });
         });
 
         function openLab(id) {
+            if(!materials[id]) return;
             state.step = 0; state.selected = [];
-            document.body.classList.add('modal-active');
             cursor.style.opacity = '0';
             document.getElementById('modal').classList.replace('hidden', 'flex');
             document.getElementById('lab-img').src = materials[id].img;
@@ -293,67 +273,25 @@
             document.getElementById('rank-name').innerText = rank;
             
             document.getElementById('modal').classList.replace('flex', 'hidden');
-            document.body.classList.remove('modal-active');
             cursor.style.opacity = '1';
 
-            if(goToReport) {
-                showFinalReport();
-            }
-        }
-
-        function animateCounter(id, start, end, duration) {
-            const obj = document.getElementById(id);
-            let current = start;
-            const range = end - start;
-            const increment = end > start ? 1 : -1;
-            const stepTime = Math.abs(Math.floor(duration / range));
-            const timer = setInterval(() => {
-                current += increment;
-                obj.innerText = current.toLocaleString();
-                if (current == end) clearInterval(timer);
-            }, stepTime);
+            if(goToReport) showFinalReport();
         }
 
         function showFinalReport() {
             document.getElementById('report-page').classList.remove('hidden');
-            document.getElementById('final-rank-title').innerText = document.getElementById('rank-name').innerText;
-            document.getElementById('final-total').innerText = state.inventory.length.toString().padStart(2, '0');
-            
-            // 動態計數器動畫
-            animateCounter('user-count', 12400, 12482, 2000);
-            animateCounter('debris-count', 84200, 84291, 2000);
-
             const grid = document.getElementById('report-grid');
             grid.innerHTML = '';
             state.inventory.forEach(item => {
                 grid.innerHTML += `
-                    <div class="bg-slate-900 border border-slate-800 rounded-[3rem] p-10 shadow-2xl hover:border-sky-500 transition-all group">
-                        <div class="relative overflow-hidden rounded-2xl mb-8">
-                            <img src="${item.img}" class="w-full h-48 object-contain transform group-hover:scale-110 transition-transform">
-                        </div>
-                        <p class="text-sky-500 text-xs font-black tracking-widest uppercase mb-2">Authenticated</p>
+                    <div class="bg-slate-900 border border-slate-800 rounded-[3rem] p-10">
+                        <img src="${item.img}" class="w-full h-48 object-contain mb-8">
                         <h4 class="text-3xl font-black mb-2">${item.name}</h4>
                         <p class="text-orange-500 font-black mb-4">${item.years}</p>
-                        <p class="text-slate-400 text-sm italic leading-relaxed">"${item.timeline}"</p>
+                        <p class="text-slate-400 text-sm italic">"${item.timeline}"</p>
                     </div>
                 `;
             });
-        }
-
-        function shareArchives() {
-            // 模擬分享功能
-            const text = `我是海洋偵探，今天收錄了 ${state.inventory.length} 件海洋廢棄物身世！我們一起守護海岸。`;
-            const dummyTextArea = document.createElement("textarea");
-            document.body.appendChild(dummyTextArea);
-            dummyTextArea.value = text;
-            dummyTextArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(dummyTextArea);
-            
-            const btn = event.currentTarget;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = "<span>連結已複製到剪貼簿！</span>";
-            setTimeout(() => btn.innerHTML = originalText, 2000);
         }
     </script>
 </body>
