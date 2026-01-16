@@ -27,7 +27,7 @@
             box-shadow: 0 0 100px rgba(0,0,0,0.8);
         }
 
-        /* 放大鏡 UI */
+        /* 放大鏡與聚光燈效果 */
         #custom-cursor {
             width: 180px; height: 180px; border: 6px solid #38bdf8; border-radius: 50%;
             position: absolute; pointer-events: none; z-index: 9999;
@@ -41,17 +41,12 @@
             background-size: cover; height: 100%; position: relative;
         }
 
-        /* 聚光燈效果 */
         .sample {
-            position: absolute; 
-            object-fit: contain;
-            cursor: pointer;
+            position: absolute; object-fit: contain; cursor: pointer;
             -webkit-mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 0%, transparent 0%);
             mask-image: radial-gradient(circle at var(--mask-x, 50%) var(--mask-y, 50%), black 0%, transparent 0%);
-            -webkit-mask-repeat: no-repeat;
-            mask-repeat: no-repeat;
-            transition: transform 0.2s ease;
-            z-index: 10;
+            -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+            transition: transform 0.2s ease; z-index: 10;
         }
 
         .sample.active-light {
@@ -128,7 +123,7 @@
                             <div id="q-options" class="opt-grid custom-scroll overflow-y-auto flex-1 pr-4"></div>
                         </div>
 
-                        <div id="result-ui" class="hidden h-full flex flex-col justify-center animate-in fade-in">
+                        <div id="result-ui" class="hidden h-full flex flex-col justify-center">
                             <div class="bg-sky-500/10 border border-sky-500/30 p-12 rounded-[3rem] mb-12">
                                 <p class="text-sky-500 text-sm font-black tracking-widest mb-3 uppercase">Classification Result</p>
                                 <h2 id="res-name" class="text-5xl font-black text-white italic mb-4">---</h2>
@@ -147,7 +142,7 @@
                 </div>
             </div>
 
-            <section id="report-page" class="hidden absolute inset-0 z-[200] bg-slate-950 overflow-y-auto p-24 custom-scroll">
+            <section id="report-page" class="hidden absolute inset-0 z-[200] bg-slate-950 overflow-y-auto p-24">
                 <div class="max-w-7xl mx-auto">
                     <div class="text-center mb-24">
                         <h2 class="text-8xl font-black italic tracking-tighter text-white mb-6">MISSION ARCHIVE</h2>
@@ -157,11 +152,9 @@
                             我們已共同釐清了 <span id="debris-count" class="text-sky-400 font-bold">0</span> 件廢棄物的身世。
                         </p>
                     </div>
-
                     <div id="report-grid" class="grid grid-cols-3 gap-10 mb-24"></div>
-
-                    <div class="text-center mb-20">
-                        <button onclick="location.reload()" class="bg-sky-600 px-16 py-8 rounded-[2.5rem] font-black text-xl hover:bg-sky-500 transition-all shadow-2xl">重新巡視海灘</button>
+                    <div class="text-center">
+                        <button onclick="location.reload()" class="bg-sky-600 px-16 py-8 rounded-[2.5rem] font-black text-xl hover:bg-sky-500 transition-all">重新巡視海灘</button>
                     </div>
                 </div>
             </section>
@@ -169,21 +162,22 @@
     </div>
 
     <script>
+        // 修正後的正確答案陣列
         const materials = [
-            { id: 0, name: '玻璃 (Glass)', years: '100萬年', tags: ['透光', '半透光', '極硬不動', '鋒利', '圓滑'], timeline: '這塊玻璃碎片若在古埃及金字塔建造時丟入海中，今天依然如新。', img: 'image/Gemini_Generated_Image_11s0eg11s0eg11s0.png' },
-            { id: 1, name: '塑膠 (Plastic)', years: '450年', tags: ['半透光', '不透光', '會彎曲', '變形', '鋒利', '斷裂面', '印刷文字', '接縫', '純色', '彩色'], timeline: '麥哲倫環球航行時代丟棄的塑膠，現在才剛開始脆化成微塑膠。', img: 'image/Gemini_Generated_Image_28jq4q28jq4q28jq.png' },
-            { id: 2, name: '金屬 (Metal)', years: '200年', tags: ['不透光', '會彎曲', '變形', '鋒利', '斷裂面', '生鏽', '金屬光澤', '塗漆'], timeline: '清朝末年的鐵罐丟入海中，到今天可能剛好鏽蝕殆盡。', img: 'image/Gemini_Generated_Image_3lpc8u3lpc8u3lpc.png' },
-            { id: 3, name: '保麗龍 (Styrofoam)', years: '500年', tags: ['不透光', '碎裂', '粉碎', '有孔隙', '格狀結構', '粉末'], timeline: '保麗龍看似弱不禁風，卻能從美國獨立戰爭時期一直漂流到今天。', img: 'image/Gemini_Generated_Image_4d61qi4d61qi4d61.png' },
-            { id: 4, name: '陶瓷 (Ceramic)', years: '永久', tags: ['不透光', '極硬不動', '鋒利', '斷裂面', '圓滑', '平順', '純色', '彩色'], timeline: '這是人類文明留給萬年後地球生物的永久性「人造化石」。', img: 'image/Gemini_Generated_Image_rqk2h2rqk2h2rqk2.png' },
-            { id: 5, name: '橡膠 (Rubber)', years: '80年', tags: ['不透光', '有彈性', '變形', '有纖維感', '粗糙', '規則紋路'], timeline: '二戰時期掉進海裡的輪胎碎片，現在依然保留著強大的彈性。', img: 'image/Gemini_Generated_Image_vhpi3kvhpi3kvhpi.png' },
-            { id: 6, name: '複合廢棄物 (Mixed Debris)', years: '不明', tags: ['不透光', '極硬不動', '彩色', '斷裂面'], timeline: '這類混和材料最難處理，它們在海洋中破碎後會造成更深遠的危害。', img: 'image/Gemini_Generated_Image_zgela4zgela4zgel.png' }
+            { id: 0, name: '陶 (Pottery)', years: '永久', tags: ['不透光', '極硬不動', '斷裂面', '粗糙'], timeline: '這是人類文明留給萬年後地球生物的永久性「人造化石」', img: 'image/Gemini_Generated_Image_11s0eg11s0eg11s0.png' },
+            { id: 1, name: '海玻璃 (Sea Glass)', years: '100萬年', tags: ['半透光', '極硬不動', '圓滑', '平順'], timeline: '玻璃在大海中磨礪成了寶石般的質地，但其化學成分卻能在海中存在百萬年。', img: 'image/Gemini_Generated_Image_28jq4q28jq4q28jq.png' },
+            { id: 2, name: '鐵 (Iron)', years: '50-200年', tags: ['不透光', '極硬不動', '生鏽', '純色'], timeline: '鐵製品在鹽分高的海邊會迅速氧化生鏽，最終回歸成紅褐色的氧化鐵粉末，清朝末年的鐵器丟入海中，到今天可能剛好鏽蝕殆盡。', img: 'image/Gemini_Generated_Image_3lpc8u3lpc8u3lpc.png' },
+            { id: 3, name: '玻璃 (Glass Bottle)', years: '100萬年', tags: ['透光', '極硬不動', '鋒利', '斷裂面'], timeline: '普通的玻璃瓶若不破碎，其結構穩定性足以跨越整個人類文明史。', img: 'image/Gemini_Generated_Image_4d61qi4d61qi4d61.png' },
+            { id: 4, name: '塑膠袋 (Plastic Bag)', years: '10-20年', tags: ['半透光', '會彎曲', '平順', '彩色'], timeline: '麥哲倫環球航行時代若有塑膠袋丟棄，直到今天才剛開始微塑膠化。它是海洋哺乳類最大的威脅之一，常被海龜誤認為美味的水母。', img: 'image/Gemini_Generated_Image_rqk2h2rqk2h2rqk2.png' },
+            { id: 5, name: '硬塑膠 (Hard Plastic)', years: '450年', tags: ['不透光', '會彎曲', '斷裂面', '接縫'], timeline: '堅硬的容器碎片，是海洋中長期存在的幽靈，持續危害海洋生態。', img: 'image/Gemini_Generated_Image_vhpi3kvhpi3kvhpi.png' },
+            { id: 6, name: '鋁 (Aluminum)', years: '80-200年', tags: ['不透光', '變形', '金屬光澤', '塗漆'], timeline: '鋁罐雖然比鐵耐腐蝕，二戰時期掉進海裡的鋁製罐頭或零件，現在依然保留著強大的金屬特徵，是海邊常見的人造廢棄物。', img: 'image/Gemini_Generated_Image_zgela4zgela4zgel.png' }
         ];
 
         const questions = [
             { title: "這東西透光嗎？", options: ["透光", "半透光", "不透光"] },
-            { title: "物理壓力反應？", options: ["極硬不動", "會彎曲", "有彈性", "變形", "碎裂", "粉碎"] },
-            { title: "邊緣質感如何？", options: ["鋒利", "斷裂面", "圓滑", "平順", "有纖維感", "有孔隙", "粗糙"] },
-            { title: "表面人工痕跡？", options: ["生鏽", "金屬光澤", "塗漆", "格狀結構", "粉末", "印刷文字", "接縫", "純色", "彩色", "規則紋路"] }
+            { title: "物理壓力反應？", options: ["極硬不動", "會彎曲", "變形", "碎裂"] },
+            { title: "邊緣質感如何？", options: ["鋒利", "斷裂面", "圓滑", "平順", "粗糙"] },
+            { title: "表面特徵？", options: ["生鏽", "金屬光澤", "塗漆", "純色", "彩色", "接縫"] }
         ];
 
         let state = { step: 0, selected: [], inventory: [], currentScale: 1, lastMatch: null };
@@ -213,7 +207,6 @@
                 const localY = ((e.clientY - sRect.top) / sRect.height) * 100;
                 s.style.setProperty('--mask-x', `${localX}%`);
                 s.style.setProperty('--mask-y', `${localY}%`);
-
                 const dist = Math.hypot(e.clientX - (sRect.left + sRect.width/2), e.clientY - (sRect.top + sRect.height/2));
                 if(dist < 180) s.classList.add('active-light');
                 else s.classList.remove('active-light');
@@ -221,7 +214,6 @@
         });
 
         function openLab(id) {
-            if(!materials[id]) return;
             state.step = 0; state.selected = [];
             cursor.style.opacity = '0';
             document.getElementById('modal').classList.replace('hidden', 'flex');
@@ -266,20 +258,15 @@
         }
 
         function saveAndClose(goToReport) {
-            if(!state.inventory.find(i => i.id === state.lastMatch.id)) {
-                state.inventory.push(state.lastMatch);
-            }
+            if(!state.inventory.find(i => i.id === state.lastMatch.id)) state.inventory.push(state.lastMatch);
             document.getElementById('col-count').innerText = state.inventory.length;
-            const rank = state.inventory.length < 3 ? "海岸實習生" : (state.inventory.length < 5 ? "淨灘分析師" : "海廢鑑定大師");
+            const rank = state.inventory.length < 3 ? "海岸實習生" : (state.inventory.length < 6 ? "淨灘分析師" : "海廢鑑定大師");
             document.getElementById('rank-name').innerText = rank;
-            
             document.getElementById('modal').classList.replace('flex', 'hidden');
             cursor.style.opacity = '1';
-
             if(goToReport) showFinalReport();
         }
 
-        // 動態跳號動畫
         function animateCounter(id, start, end, duration) {
             const obj = document.getElementById(id);
             if (!obj) return;
@@ -296,23 +283,18 @@
 
         function showFinalReport() {
             document.getElementById('report-page').classList.remove('hidden');
-            
-            // 啟動動態數值動畫
             animateCounter('user-count', 12400, 12482, 2000);
             animateCounter('debris-count', 84200, 84291, 2000);
-
             const grid = document.getElementById('report-grid');
             grid.innerHTML = '';
             state.inventory.forEach(item => {
                 grid.innerHTML += `
-                    <div class="bg-slate-900 border border-slate-800 rounded-[3rem] p-10 shadow-2xl hover:border-sky-500 transition-all group">
+                    <div class="bg-slate-900 border border-slate-800 rounded-[3rem] p-10 group">
                         <img src="${item.img}" class="w-full h-48 object-contain mb-8 group-hover:scale-110 transition-transform">
-                        <p class="text-sky-500 text-xs font-black tracking-widest uppercase mb-2">Authenticated</p>
-                        <h4 class="text-3xl font-black mb-2">${item.name}</h4>
+                        <h4 class="text-3xl font-black mb-2 text-sky-400">${item.name}</h4>
                         <p class="text-orange-500 font-black mb-4">${item.years}</p>
                         <p class="text-slate-400 text-sm italic">"${item.timeline}"</p>
-                    </div>
-                `;
+                    </div>`;
             });
         }
     </script>
