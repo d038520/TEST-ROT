@@ -1,114 +1,154 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { Plus, Trash2, Layout, MousePointer2, Type } from 'lucide-react';
+import { Plus, Layout, Download, Trash2, Maximize2, GitBranch, Zap } from 'lucide-react';
 
 const App = () => {
+  // 初始節點與連線
   const [nodes, setNodes] = useState([
-    { id: '1', text: '根節點 (Root)', x: 400, y: 50, isEditing: false },
+    { id: '1', text: 'iPAS AI 中級鑑定', x: 400, y: 50, level: 0, color: '#1e293b' },
+    { id: '2', text: '科目一: 技術應用', x: 100, y: 200, level: 1, color: '#2563eb' },
+    { id: '3', text: '科目二: 大數據', x: 400, y: 200, level: 1, color: '#059669' },
+    { id: '4', text: '科目三: 機器學習', x: 700, y: 200, level: 1, color: '#7c3aed' },
   ]);
-  const [links, setLinks] = useState([]);
-  const [draggingNode, setDraggingNode] = useState(null);
-  const [connectingNode, setConnectingNode] = useState(null);
+  
+  const [links, setLinks] = useState([
+    { source: '1', target: '2', sourcePort: 'bottom', targetPort: 'top' },
+    { source: '1', target: '3', sourcePort: 'bottom', targetPort: 'top' },
+    { source: '1', target: '4', sourcePort: 'bottom', targetPort: 'top' },
+  ]);
+
+  const [connecting, setConnecting] = useState(null); // { nodeId, port }
+  const [dragging, setDragging] = useState(null);
   const containerRef = useRef(null);
 
-  // 1. 點擊出現文字框 (新增節點)
-  const addNode = () => {
-    const newNode = {
-      id: Date.now().toString(),
-      text: '新知識點',
-      x: 100 + Math.random() * 200,
-      y: 100 + Math.random() * 200,
-      isEditing: true,
-    };
-    setNodes([...nodes, newNode]);
-  };
-
-  // 2. 拖拽邏輯
-  const onMouseDown = (id, e) => {
-    if (e.target.tagName === 'INPUT') return;
-    setDraggingNode({ id, offsetX: e.clientX, offsetY: e.clientY });
-  };
-
-  const onMouseMove = (e) => {
-    if (draggingNode) {
-      setNodes(nds => nds.map(n => 
-        n.id === draggingNode.id 
-          ? { ...n, x: n.x + (e.clientX - draggingNode.offsetX), y: n.y + (e.clientY - draggingNode.offsetY) } 
-          : n
-      ));
-      setDraggingNode({ ...draggingNode, offsetX: e.clientX, offsetY: e.clientY });
-    }
-  };
-
-  const onMouseUp = () => setDraggingNode(null);
-
-  // 3. 點對點連線
-  const startConnection = (id) => setConnectingNode(id);
-  const endConnection = (targetId) => {
-    if (connectingNode && connectingNode !== targetId) {
-      if (!links.find(l => (l.source === connectingNode && l.target === targetId))) {
-        setLinks([...links, { source: connectingNode, target: targetId }]);
-      }
-    }
-    setConnectingNode(null);
-  };
-
-  // 4. 自動排版 (簡易垂直分層)
+  // --- 功能：階層式自動排版 ---
   const autoLayout = () => {
-    const newNodes = nodes.map((n, i) => ({
-      ...n,
-      x: 200 + (i % 3) * 200,
-      y: 100 + Math.floor(i / 3) * 150
-    }));
+    const levelGroups = {};
+    nodes.forEach(node => {
+      if (!levelGroups[node.level]) levelGroups[node.level] = [];
+      levelGroups[node.level].push(node);
+    });
+
+    const newNodes = nodes.map(node => {
+      const group = levelGroups[node.level];
+      const index = group.indexOf(node);
+      const totalInGroup = group.length;
+      const spacing = 1000 / (totalInGroup + 1);
+      return {
+        ...node,
+        x: spacing * (index + 1) - 100,
+        y: 50 + node.level * 200
+      };
+    });
     setNodes(newNodes);
   };
 
-  const updateNodeText = (id, text) => {
-    setNodes(nds => nds.map(n => n.id === id ? { ...n, text, isEditing: false } : n));
+  // --- 功能：新增子節點 (自動帶入階層) ---
+  const addChild = (parentId, level) => {
+    const id = Date.now().toString();
+    const parent = nodes.find(n => n.id === parentId);
+    const newNode = {
+      id,
+      text: '新知識點',
+      x: parent.x + (Math.random() - 0.5) * 100,
+      y: parent.y + 150,
+      level: level + 1,
+      color: parent.color
+    };
+    setNodes([...nodes, newNode]);
+    setLinks([...links, { source: parentId, target: id, sourcePort: 'bottom', targetPort: 'top' }]);
   };
 
-  const deleteNode = (id) => {
-    setNodes(nds => nds.filter(n => n.id !== id));
-    setLinks(ls => ls.filter(l => l.source !== id && l.target !== id));
+  // --- 功能：輸出 JSON ---
+  const exportData = () => {
+    const data = JSON.stringify({ nodes, links }, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ipas-ai-research.json';
+    a.click();
+  };
+
+  // --- 互動邏輯：連線與拖拽 ---
+  const startConnect = (nodeId, port) => {
+    if (!connecting) {
+      setConnecting({ nodeId, port });
+    } else {
+      if (connecting.nodeId !== nodeId) {
+        setLinks([...links, { 
+          source: connecting.nodeId, 
+          target: nodeId, 
+          sourcePort: connecting.port, 
+          targetPort: port 
+        }]);
+      }
+      setConnecting(null);
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (dragging) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setNodes(nds => nds.map(n => 
+        n.id === dragging.id ? { ...n, x: e.clientX - rect.left - 100, y: e.clientY - rect.top - 30 } : n
+      ));
+    }
+  };
+
+  // 計算連線座標 (基於四邊)
+  const getPortPos = (node, port) => {
+    const w = 200, h = 60;
+    if (port === 'top') return { x: node.x + w/2, y: node.y };
+    if (port === 'bottom') return { x: node.x + w/2, y: node.y + h };
+    if (port === 'left') return { x: node.x, y: node.y + h/2 };
+    if (port === 'right') return { x: node.x + w, y: node.y + h/2 };
+    return { x: node.x + w/2, y: node.y + h/2 };
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden font-sans">
-      {/* 工具列 */}
-      <div className="bg-white border-b p-4 flex gap-4 items-center shadow-sm">
-        <button onClick={addNode} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-          <Plus size={18} /> 新增節點
-        </button>
-        <button onClick={autoLayout} className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition">
-          <Layout size={18} /> 自動排版
-        </button>
-        <div className="h-6 w-px bg-gray-200 mx-2" />
-        <p className="text-sm text-gray-500 italic">
-          操作說明：拖拽標籤移動，點擊圓點開始連線，雙擊文字可編輯。
-        </p>
+    <div className="flex flex-col h-screen bg-slate-900 text-slate-100 overflow-hidden font-sans">
+      {/* 頂部工具欄 */}
+      <div className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center shadow-xl z-50">
+        <div className="flex items-center gap-3">
+          <Zap className="text-yellow-400" fill="currentColor" />
+          <h1 className="text-lg font-bold tracking-tight">AI 研究階層編輯器</h1>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => setNodes([...nodes, { id: Date.now().toString(), text: '自由節點', x: 100, y: 100, level: 1, color: '#64748b' }])} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg transition">
+            <Plus size={16} /> 新增
+          </button>
+          <button onClick={autoLayout} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg transition shadow-lg shadow-blue-900/20">
+            <Layout size={16} /> 階層排版
+          </button>
+          <button onClick={exportData} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg transition">
+            <Download size={16} /> 輸出 JSON
+          </button>
+        </div>
       </div>
 
       {/* 畫布 */}
       <div 
         ref={containerRef}
-        className="flex-grow relative cursor-crosshair overflow-hidden"
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
+        className="flex-grow relative bg-slate-900 overflow-hidden"
+        onMouseMove={handleMouseMove}
+        onMouseUp={() => setDragging(null)}
+        onClick={(e) => e.target === e.currentTarget && setConnecting(null)}
       >
         <svg className="absolute inset-0 w-full h-full pointer-events-none">
-          <defs>
-            <marker id="arrow" viewBox="0 0 10 10" refX="25" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
-            </marker>
-          </defs>
           {links.map((link, i) => {
-            const s = nodes.find(n => n.id === link.source);
-            const t = nodes.find(n => n.id === link.target);
-            if (!s || !t) return null;
+            const sNode = nodes.find(n => n.id === link.source);
+            const tNode = nodes.find(n => n.id === link.target);
+            if (!sNode || !tNode) return null;
+            const p1 = getPortPos(sNode, link.sourcePort);
+            const p2 = getPortPos(tNode, link.targetPort);
             return (
-              <line 
-                key={i} 
-                x1={s.x + 80} y1={s.y + 25} x2={t.x + 80} y2={t.y + 25} 
-                stroke="#94a3b8" strokeWidth="2" markerEnd="url(#arrow)"
+              <path 
+                key={i}
+                d={`M ${p1.x} ${p1.y} C ${p1.x} ${(p1.y+p2.y)/2}, ${p2.x} ${(p1.y+p2.y)/2}, ${p2.x} ${p2.y}`}
+                stroke={sNode.color}
+                strokeWidth="2"
+                fill="none"
+                strokeOpacity="0.6"
               />
             );
           })}
@@ -117,46 +157,47 @@ const App = () => {
         {nodes.map(node => (
           <div
             key={node.id}
-            style={{ left: node.x, top: node.y }}
-            className={`absolute w-40 bg-white border-2 rounded-xl shadow-lg transition-shadow ${draggingNode?.id === node.id ? 'shadow-2xl ring-2 ring-blue-400' : ''}`}
-            onMouseDown={(e) => onMouseDown(node.id, e)}
+            style={{ left: node.x, top: node.y, borderColor: node.color }}
+            className={`absolute w-[200px] h-[60px] bg-slate-800 border-2 rounded-lg flex items-center justify-center group shadow-lg ${dragging?.id === node.id ? 'z-50 ring-2 ring-white/50' : 'z-20'}`}
+            onMouseDown={() => setDragging(node)}
           >
-            <div className="p-3">
-              {node.isEditing ? (
-                <input
-                  autoFocus
-                  className="w-full border-none outline-none text-sm bg-blue-50 p-1 rounded"
-                  defaultValue={node.text}
-                  onBlur={(e) => updateNodeText(node.id, e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && updateNodeText(node.id, e.target.value)}
-                />
-              ) : (
-                <div className="flex justify-between items-center group">
-                  <span 
-                    className="text-sm font-semibold truncate cursor-text w-full"
-                    onDoubleClick={() => setNodes(nds => nds.map(n => n.id === node.id ? {...n, isEditing: true} : n))}
-                  >
-                    {node.text}
-                  </span>
-                  <button onClick={() => deleteNode(node.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 連線圓點 */}
-            <div 
-              className={`absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white cursor-pointer z-20 ${connectingNode === node.id ? 'bg-orange-500 scale-125' : 'bg-blue-500 hover:bg-blue-600'}`}
-              onClick={() => connectingNode ? endConnection(node.id) : startConnection(node.id)}
-              title="點擊連線"
+            <input 
+              className="bg-transparent text-center text-sm font-medium w-full px-2 outline-none cursor-move"
+              value={node.text}
+              onChange={(e) => setNodes(nds => nds.map(n => n.id === node.id ? {...n, text: e.target.value} : n))}
             />
-            {connectingNode && connectingNode !== node.id && (
+            
+            {/* 四邊連線點 */}
+            {['top', 'bottom', 'left', 'right'].map(p => (
               <div 
-                className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-green-500 border-2 border-white cursor-pointer animate-pulse"
-                onClick={() => endConnection(node.id)}
+                key={p}
+                className={`absolute w-3 h-3 rounded-full border-2 border-slate-900 cursor-crosshair hover:scale-150 transition-transform ${connecting?.nodeId === node.id && connecting.port === p ? 'bg-yellow-400' : 'bg-slate-400'}`}
+                style={{
+                  top: p === 'top' ? '-6px' : p === 'bottom' ? 'auto' : '50%',
+                  bottom: p === 'bottom' ? '-6px' : 'auto',
+                  left: p === 'left' ? '-6px' : p === 'right' ? 'auto' : '50%',
+                  right: p === 'right' ? '-6px' : 'auto',
+                  transform: 'translate(-50%, -50%)',
+                  marginTop: p === 'left' || p === 'right' ? '0' : '',
+                  marginLeft: p === 'top' || p === 'bottom' ? '0' : ''
+                }}
+                onClick={(e) => { e.stopPropagation(); startConnect(node.id, p); }}
               />
-            )}
+            ))}
+
+            {/* 快速新增子節點按鈕 */}
+            <button 
+              onClick={() => addChild(node.id, node.level)}
+              className="absolute -right-8 opacity-0 group-hover:opacity-100 bg-slate-700 p-1 rounded-full hover:bg-blue-500 transition"
+            >
+              <GitBranch size={14} />
+            </button>
+            <button 
+              onClick={() => { setNodes(nds => nds.filter(n => n.id !== node.id)); setLinks(ls => ls.filter(l => l.source !== node.id && l.target !== node.id)); }}
+              className="absolute -left-8 opacity-0 group-hover:opacity-100 bg-slate-700 p-1 rounded-full hover:bg-red-500 transition"
+            >
+              <Trash2 size={14} />
+            </button>
           </div>
         ))}
       </div>
