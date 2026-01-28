@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ＷＥＮ樹狀階層導航編輯器 - 圖片放大版</title>
+    <title>ＷＥＮ樹狀階層導覽編輯器 - 連線管理版</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -125,6 +125,17 @@
             animation: fadeIn 0.3s ease;
         }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .link-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -140,10 +151,12 @@
                 download: <path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 12 12 16.5m0 0L16.5 12M12 16.5V3" />,
                 upload: <path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />,
                 x: <path d="M6 18 18 6M6 6l12 12" />,
+                trash: <path d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />,
                 note: <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />,
                 image: <path d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6.75a1.5 1.5 0 0 0-1.5-1.5H3.75a1.5 1.5 0 0 0-1.5 1.5v12.75a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />,
                 chevronLeft: <path d="M15.75 19.5 8.25 12l7.5-7.5" />,
                 chevronRight: <path d="m8.25 4.5 7.5 7.5-7.5 7.5" />,
+                link: <path d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />,
                 locate: (
                     <React.Fragment>
                         <path d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -172,7 +185,7 @@
             const [isCanvasDragging, setIsCanvasDragging] = useState(false);
             const [selectedId, setSelectedId] = useState('root');
             const [toast, setToast] = useState({ show: false, message: '' });
-            const [zoomImage, setZoomImage] = useState(null); // Lightbox 圖片狀態
+            const [zoomImage, setZoomImage] = useState(null); 
             
             const containerRef = useRef(null);
             const fileInputRef = useRef(null);
@@ -333,6 +346,13 @@
 
             const selectedNode = useMemo(() => nodes.find(n => n.id === selectedId), [nodes, selectedId]);
 
+            const outgoingLinks = useMemo(() => links.filter(l => l.from === selectedId), [links, selectedId]);
+
+            const deleteLink = (linkId) => {
+                setLinks(prev => prev.filter(l => l.id !== linkId));
+                showToast('已刪除連接線');
+            };
+
             const renderHierarchyList = (treeNodes) => {
                 return treeNodes.map(node => (
                     <div key={node.id}>
@@ -357,7 +377,6 @@
                 <div className="flex h-screen text-slate-100 overflow-hidden relative select-none bg-[#050b18]">
                     <div className={`toast ${toast.show ? 'show' : ''}`}>{toast.message}</div>
                     
-                    {/* Lightbox 圖片放大層 */}
                     {zoomImage && (
                         <div className="lightbox-overlay" onClick={() => setZoomImage(null)}>
                             <button className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white">
@@ -475,12 +494,6 @@
                                 ))}
                             </div>
                         </main>
-                        
-                        <div className="absolute bottom-6 left-6 z-[100] flex items-center gap-3 bg-slate-900/80 backdrop-blur border border-white/5 px-4 py-2 rounded-full text-[10px] font-bold tracking-widest text-slate-400">
-                            <span>SCALE: {Math.round(transform.scale * 100)}%</span>
-                            <div className="w-[1px] h-3 bg-white/10"></div>
-                            <span>NODES: {nodes.length}</span>
-                        </div>
                     </div>
 
                     <button onClick={() => setIsSidePanelOpen(!isSidePanelOpen)} className="absolute top-1/2 -translate-y-1/2 z-[110] bg-slate-800 border border-white/10 p-1.5 rounded-l-xl hover:bg-slate-700 transition-colors" style={{ right: isSidePanelOpen ? '320px' : '0' }}>
@@ -512,7 +525,7 @@
                                                             setNodes(nodes.filter(n => n.id !== selectedId));
                                                             setLinks(links.filter(l => l.from !== selectedId && l.to !== selectedId));
                                                             setSelectedId(null);
-                                                        }} className="bg-red-500/20 text-red-400 p-2 rounded-lg hover:bg-red-500/30"><SvgIcon name="x" className="w-4 h-4" /></button>
+                                                        }} className="bg-red-500/20 text-red-400 p-2 rounded-lg hover:bg-red-500/30"><SvgIcon name="trash" className="w-4 h-4" /></button>
                                                     </div>
                                                 </div>
                                                 
@@ -530,7 +543,7 @@
                                                 <div className="space-y-3">
                                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">詳細內容 (支援貼圖)</label>
                                                     <textarea 
-                                                        className="w-full bg-slate-950 border border-white/5 rounded-xl p-4 text-sm text-slate-300 outline-none h-48 focus:border-indigo-500/50 transition-colors leading-relaxed" 
+                                                        className="w-full bg-slate-950 border border-white/5 rounded-xl p-4 text-sm text-slate-300 outline-none h-40 focus:border-indigo-500/50 transition-colors leading-relaxed" 
                                                         placeholder="在這裡輸入詳細說明，或 Ctrl+V 貼上圖片..." 
                                                         value={selectedNode.note || ""} 
                                                         onPaste={handlePaste}
@@ -539,11 +552,41 @@
                                                 </div>
 
                                                 <div className="space-y-3">
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">連線管理 (下游節點)</label>
+                                                    {outgoingLinks.length > 0 ? (
+                                                        <div className="space-y-1">
+                                                            {outgoingLinks.map(l => {
+                                                                const target = nodes.find(n => n.id === l.to);
+                                                                return (
+                                                                    <div key={l.id} className="link-item group">
+                                                                        <div className="flex items-center gap-2 overflow-hidden">
+                                                                            <SvgIcon name="link" className="w-3.5 h-3.5 text-slate-500" />
+                                                                            <span className="text-xs text-slate-300 truncate font-medium">
+                                                                                {target?.text || '未知節點'}
+                                                                            </span>
+                                                                        </div>
+                                                                        <button 
+                                                                            onClick={() => deleteLink(l.id)}
+                                                                            className="text-slate-500 hover:text-red-400 p-1 rounded hover:bg-red-500/10 transition-colors"
+                                                                            title="移除此連線"
+                                                                        >
+                                                                            <SvgIcon name="x" className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-[10px] text-slate-600 italic">目前無下游連線</div>
+                                                    )}
+                                                </div>
+
+                                                <div className="space-y-3">
                                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">附圖預覽 (點擊放大)</label>
                                                     {!selectedNode.image ? (
-                                                        <button onClick={() => imageInputRef.current.click()} className="w-full h-32 border-2 border-dashed border-white/5 rounded-xl flex flex-col items-center justify-center text-slate-600 hover:text-indigo-400 hover:border-indigo-500/30 transition-all bg-slate-950/50">
-                                                            <SvgIcon name="image" className="w-8 h-8 mb-2" />
-                                                            <span className="text-xs font-bold uppercase">點擊上傳或貼上圖片</span>
+                                                        <button onClick={() => imageInputRef.current.click()} className="w-full h-24 border-2 border-dashed border-white/5 rounded-xl flex flex-col items-center justify-center text-slate-600 hover:text-indigo-400 hover:border-indigo-500/30 transition-all bg-slate-950/50">
+                                                            <SvgIcon name="image" className="w-6 h-6 mb-1" />
+                                                            <span className="text-[10px] font-bold uppercase tracking-tight">點擊上傳或貼上圖片</span>
                                                         </button>
                                                     ) : (
                                                         <div className="relative rounded-xl overflow-hidden group shadow-2xl border border-white/10 bg-black cursor-zoom-in" onClick={() => setZoomImage(selectedNode.image)}>
