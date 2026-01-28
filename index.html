@@ -1,1 +1,167 @@
+import React, { useState, useCallback, useRef } from 'react';
+import { Plus, Trash2, Layout, MousePointer2, Type } from 'lucide-react';
 
+const App = () => {
+  const [nodes, setNodes] = useState([
+    { id: '1', text: '根節點 (Root)', x: 400, y: 50, isEditing: false },
+  ]);
+  const [links, setLinks] = useState([]);
+  const [draggingNode, setDraggingNode] = useState(null);
+  const [connectingNode, setConnectingNode] = useState(null);
+  const containerRef = useRef(null);
+
+  // 1. 點擊出現文字框 (新增節點)
+  const addNode = () => {
+    const newNode = {
+      id: Date.now().toString(),
+      text: '新知識點',
+      x: 100 + Math.random() * 200,
+      y: 100 + Math.random() * 200,
+      isEditing: true,
+    };
+    setNodes([...nodes, newNode]);
+  };
+
+  // 2. 拖拽邏輯
+  const onMouseDown = (id, e) => {
+    if (e.target.tagName === 'INPUT') return;
+    setDraggingNode({ id, offsetX: e.clientX, offsetY: e.clientY });
+  };
+
+  const onMouseMove = (e) => {
+    if (draggingNode) {
+      setNodes(nds => nds.map(n => 
+        n.id === draggingNode.id 
+          ? { ...n, x: n.x + (e.clientX - draggingNode.offsetX), y: n.y + (e.clientY - draggingNode.offsetY) } 
+          : n
+      ));
+      setDraggingNode({ ...draggingNode, offsetX: e.clientX, offsetY: e.clientY });
+    }
+  };
+
+  const onMouseUp = () => setDraggingNode(null);
+
+  // 3. 點對點連線
+  const startConnection = (id) => setConnectingNode(id);
+  const endConnection = (targetId) => {
+    if (connectingNode && connectingNode !== targetId) {
+      if (!links.find(l => (l.source === connectingNode && l.target === targetId))) {
+        setLinks([...links, { source: connectingNode, target: targetId }]);
+      }
+    }
+    setConnectingNode(null);
+  };
+
+  // 4. 自動排版 (簡易垂直分層)
+  const autoLayout = () => {
+    const newNodes = nodes.map((n, i) => ({
+      ...n,
+      x: 200 + (i % 3) * 200,
+      y: 100 + Math.floor(i / 3) * 150
+    }));
+    setNodes(newNodes);
+  };
+
+  const updateNodeText = (id, text) => {
+    setNodes(nds => nds.map(n => n.id === id ? { ...n, text, isEditing: false } : n));
+  };
+
+  const deleteNode = (id) => {
+    setNodes(nds => nds.filter(n => n.id !== id));
+    setLinks(ls => ls.filter(l => l.source !== id && l.target !== id));
+  };
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden font-sans">
+      {/* 工具列 */}
+      <div className="bg-white border-b p-4 flex gap-4 items-center shadow-sm">
+        <button onClick={addNode} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+          <Plus size={18} /> 新增節點
+        </button>
+        <button onClick={autoLayout} className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition">
+          <Layout size={18} /> 自動排版
+        </button>
+        <div className="h-6 w-px bg-gray-200 mx-2" />
+        <p className="text-sm text-gray-500 italic">
+          操作說明：拖拽標籤移動，點擊圓點開始連線，雙擊文字可編輯。
+        </p>
+      </div>
+
+      {/* 畫布 */}
+      <div 
+        ref={containerRef}
+        className="flex-grow relative cursor-crosshair overflow-hidden"
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+      >
+        <svg className="absolute inset-0 w-full h-full pointer-events-none">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="25" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+            </marker>
+          </defs>
+          {links.map((link, i) => {
+            const s = nodes.find(n => n.id === link.source);
+            const t = nodes.find(n => n.id === link.target);
+            if (!s || !t) return null;
+            return (
+              <line 
+                key={i} 
+                x1={s.x + 80} y1={s.y + 25} x2={t.x + 80} y2={t.y + 25} 
+                stroke="#94a3b8" strokeWidth="2" markerEnd="url(#arrow)"
+              />
+            );
+          })}
+        </svg>
+
+        {nodes.map(node => (
+          <div
+            key={node.id}
+            style={{ left: node.x, top: node.y }}
+            className={`absolute w-40 bg-white border-2 rounded-xl shadow-lg transition-shadow ${draggingNode?.id === node.id ? 'shadow-2xl ring-2 ring-blue-400' : ''}`}
+            onMouseDown={(e) => onMouseDown(node.id, e)}
+          >
+            <div className="p-3">
+              {node.isEditing ? (
+                <input
+                  autoFocus
+                  className="w-full border-none outline-none text-sm bg-blue-50 p-1 rounded"
+                  defaultValue={node.text}
+                  onBlur={(e) => updateNodeText(node.id, e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && updateNodeText(node.id, e.target.value)}
+                />
+              ) : (
+                <div className="flex justify-between items-center group">
+                  <span 
+                    className="text-sm font-semibold truncate cursor-text w-full"
+                    onDoubleClick={() => setNodes(nds => nds.map(n => n.id === node.id ? {...n, isEditing: true} : n))}
+                  >
+                    {node.text}
+                  </span>
+                  <button onClick={() => deleteNode(node.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 連線圓點 */}
+            <div 
+              className={`absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white cursor-pointer z-20 ${connectingNode === node.id ? 'bg-orange-500 scale-125' : 'bg-blue-500 hover:bg-blue-600'}`}
+              onClick={() => connectingNode ? endConnection(node.id) : startConnection(node.id)}
+              title="點擊連線"
+            />
+            {connectingNode && connectingNode !== node.id && (
+              <div 
+                className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-green-500 border-2 border-white cursor-pointer animate-pulse"
+                onClick={() => endConnection(node.id)}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default App;
