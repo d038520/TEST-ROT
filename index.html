@@ -3,50 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ＷＥＮ樹狀詳細註解編輯器</title>
+    <title>ＷＥＮ樹狀階層導航編輯器</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { margin: 0; background-color: #0f172a; font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; overflow: hidden; }
-        .node-card { transition: border-color 0.2s, box-shadow 0.2s; border-left: 4px solid; min-height: 60px; cursor: move; position: absolute; }
-        .node-card:hover { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4); }
-        .node-card.selected { outline: 2px solid #6366f1; outline-offset: 4px; z-index: 30; }
-        .port { width: 12px; height: 12px; border-radius: 50%; background: #475569; border: 2px solid #0f172a; cursor: crosshair; position: absolute; left: 50%; transform: translateX(-50%); z-index: 20; }
+        body { margin: 0; background-color: #050b18; font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; overflow: hidden; }
+        .canvas-bg { 
+            background-color: #050b18;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px); 
+            background-size: 30px 30px; 
+        }
+        .canvas-container {
+            transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .node-card { 
+            position: absolute; 
+            min-height: 60px; 
+            cursor: move; 
+            transition: border-color 0.2s, box-shadow 0.2s, outline 0.2s; 
+            border-left: 4px solid; 
+            z-index: 10;
+        }
+        .node-card.selected { outline: 2px solid #6366f1; outline-offset: 4px; z-index: 50; }
+        .port { 
+            width: 12px; height: 12px; border-radius: 50%; 
+            background: #475569; border: 2px solid #0f172a; 
+            cursor: crosshair; position: absolute; 
+            left: 50%; transform: translateX(-50%); 
+            z-index: 20; 
+        }
         .port:hover { background: #fbbf24; transform: translateX(-50%) scale(1.3); }
-        .link-path { fill: none; stroke: #475569; stroke-width: 2.5; transition: all 0.2s; cursor: pointer; pointer-events: stroke; }
-        .link-path:hover { stroke: #f87171; stroke-width: 4; }
-        .canvas-bg { background-image: radial-gradient(#1e293b 2px, transparent 2px); background-size: 32px 32px; }
-        .text-input { background: transparent; border: none; resize: none; color: white; width: 100%; text-align: center; outline: none; font-size: 14px; font-weight: 600; min-height: 40px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .side-panel { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
+        .link-path { fill: none; stroke: rgba(99, 102, 241, 0.4); stroke-width: 2.5; transition: stroke 0.2s; pointer-events: none; }
+        .text-input { 
+            background: transparent; border: none; resize: none; 
+            color: white; width: 100%; text-align: center; 
+            outline: none; font-size: 14px; font-weight: 600; 
+            min-height: 40px; display: flex; align-items: center; 
+            justify-content: center; overflow: hidden; 
+        }
+        .side-panel { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .btn-primary { background-color: #4f46e5; color: white; }
+        .btn-primary:hover { background-color: #4338ca; }
+        .btn-secondary { background-color: #1e293b; color: #cbd5e1; }
+        .btn-secondary:hover { background-color: #334155; color: white; }
+        
+        .tab-btn {
+            position: relative;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #94a3b8;
+            transition: color 0.2s;
+        }
+        .tab-btn.active { color: #f59e0b; }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 2px; background: #f59e0b;
+        }
+
+        .hierarchy-item {
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .hierarchy-item:hover { background: rgba(99, 102, 241, 0.15); color: white; }
+        .hierarchy-item.active { background: rgba(99, 102, 241, 0.25); color: #818cf8; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useRef, useEffect, useMemo } = React;
+        const { useState, useRef, useEffect, useMemo, useCallback } = React;
 
         const SvgIcon = ({ name, className = "w-5 h-5" }) => {
             const icons = {
-                plus: <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />,
-                layout: <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />,
-                download: <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 12 12 16.5m0 0L16.5 12M12 16.5V3" />,
-                upload: <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />,
-                x: <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />,
-                note: <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />,
-                chevronRight: <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />,
-                chevronLeft: <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />,
-                refresh: <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />,
-                image: <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6.75a1.5 1.5 0 0 0-1.5-1.5H3.75a1.5 1.5 0 0 0-1.5 1.5v12.75a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />,
+                plus: <path d="M12 4.5v15m7.5-7.5h-15" />,
+                layout: <path d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />,
+                download: <path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 12 12 16.5m0 0L16.5 12M12 16.5V3" />,
+                upload: <path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />,
+                x: <path d="M6 18 18 6M6 6l12 12" />,
+                note: <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />,
+                image: <path d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6.75a1.5 1.5 0 0 0-1.5-1.5H3.75a1.5 1.5 0 0 0-1.5 1.5v12.75a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />,
+                chevronLeft: <path d="M15.75 19.5 8.25 12l7.5-7.5" />,
+                chevronRight: <path d="m8.25 4.5 7.5 7.5-7.5 7.5" />,
                 locate: (
                     <React.Fragment>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                        <path d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                        <path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                     </React.Fragment>
-                )
+                ),
+                list: <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />,
+                settings: <path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 0 1 0 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 0 1 0-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281Z" />
             };
             return (
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
@@ -57,116 +129,90 @@
 
         const App = () => {
             const [nodes, setNodes] = useState([
-                { id: 'root', text: '核心主題', x: 400, y: 150, color: '#f59e0b', note: '這是主節點。', image: null }
+                { id: 'root', text: '核心主題', x: 2000, y: 2000, color: '#f59e0b', note: '', image: null }
             ]);
             const [links, setLinks] = useState([]);
-            const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+            const [transform, setTransform] = useState({ x: 0, y: 0, scale: 0.8 });
             const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
+            const [sideTab, setSideTab] = useState('edit'); // 'edit' or 'hierarchy'
             const [draggingId, setDraggingId] = useState(null);
             const [isCanvasDragging, setIsCanvasDragging] = useState(false);
-            const [selectedId, setSelectedId] = useState(null);
-            const [scaleInput, setScaleInput] = useState("100");
+            const [selectedId, setSelectedId] = useState('root');
             
             const containerRef = useRef(null);
-            const imageInputRef = useRef(null);
             const fileInputRef = useRef(null);
+            const imageInputRef = useRef(null);
 
-            const selectedNode = useMemo(() => nodes.find(n => n.id === selectedId), [nodes, selectedId]);
-            const getNodeWidth = (text) => Math.min(Math.max(160, 140 + text.length * 12), 350);
+            const getNodeWidth = (text) => Math.min(Math.max(160, 140 + (text?.length || 0) * 10), 400);
+
+            // 置中導航 (100% 縮放)
+            const focusAndZoom = useCallback((nodeId, customNodes = nodes) => {
+                const node = customNodes.find(n => n.id === nodeId);
+                if (!node || !containerRef.current) return;
+                
+                const rect = containerRef.current.getBoundingClientRect();
+                const nodeW = getNodeWidth(node.text);
+                const targetScale = 1.0;
+
+                const targetX = rect.width / 2 - (node.x + nodeW / 2) * targetScale;
+                const targetY = rect.height / 2 - (node.y + 30) * targetScale;
+
+                setTransform({ x: targetX, y: targetY, scale: targetScale });
+                setSelectedId(nodeId);
+            }, [nodes]);
+
+            const autoFocusAll = useCallback((targetNodes) => {
+                if (!targetNodes || targetNodes.length === 0 || !containerRef.current) return;
+                const rect = containerRef.current.getBoundingClientRect();
+                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                targetNodes.forEach(n => {
+                    const w = getNodeWidth(n.text);
+                    minX = Math.min(minX, n.x);
+                    maxX = Math.max(maxX, n.x + w);
+                    minY = Math.min(minY, n.y);
+                    maxY = Math.max(maxY, n.y + 60);
+                });
+                const centerX = (minX + maxX) / 2;
+                const centerY = (minY + maxY) / 2;
+                const scale = Math.min(Math.max(0.4, Math.min((rect.width - 200) / (maxX - minX), (rect.height - 200) / (maxY - minY))), 1.2);
+                setTransform({ x: rect.width / 2 - centerX * scale, y: rect.height / 2 - centerY * scale, scale: scale });
+            }, []);
 
             useEffect(() => {
-                setScaleInput(Math.round(transform.scale * 100).toString());
-            }, [transform.scale]);
+                autoFocusAll(nodes);
+            }, []);
 
-            const handleScaleSubmit = (e) => {
-                if (e.key === 'Enter') {
-                    const val = parseFloat(scaleInput);
-                    if (!isNaN(val)) {
-                        const newScale = Math.min(Math.max(20, val), 300) / 100;
-                        setTransform(prev => ({ ...prev, scale: newScale }));
-                    }
-                }
-            };
-
-            // 重要：計算畫布正中央對應的世界座標
-            const getCanvasCenterInWorld = () => {
-                if (!containerRef.current) return { x: 200, y: 200 };
-                const rect = containerRef.current.getBoundingClientRect();
-                const centerX = (rect.width / 2 - transform.x) / transform.scale;
-                const centerY = (rect.height / 2 - transform.y) / transform.scale;
-                return { x: centerX, y: centerY };
-            };
-
-            const addNewNodeAtCenter = () => {
-                const center = getCanvasCenterInWorld();
-                const newNode = { 
-                    id: `n-${Date.now()}`, 
-                    text: '新主題', 
-                    // 稍微偏移讓節點中心對準計算出的中央位置
-                    x: center.x - 80, 
-                    y: center.y - 30, 
-                    color: '#94a3b8', 
-                    note: '', 
-                    image: null 
+            const addNode = () => {
+                const parent = nodes.find(n => n.id === selectedId) || nodes[0];
+                const newId = `node-${Date.now()}`;
+                const newNode = {
+                    id: newId,
+                    text: '新分支',
+                    x: parent.x + 250,
+                    y: parent.y + (Math.random() * 100 - 50),
+                    color: parent.color,
+                    note: '',
+                    image: null
                 };
-                setNodes(nds => [...nds, newNode]);
-                setSelectedId(newNode.id);
-            };
-
-            const focusOnNode = (nodeId) => {
-                const node = nodes.find(n => n.id === nodeId);
-                if (!node || !containerRef.current) return;
-                const nodeWidth = getNodeWidth(node.text);
-                const containerWidth = containerRef.current.offsetWidth;
-                const containerHeight = containerRef.current.offsetHeight;
-                const targetX = (containerWidth / 2) - (node.x + nodeWidth / 2) * transform.scale;
-                const targetY = (containerHeight / 2) - (node.y + 30) * transform.scale;
-                setTransform(prev => ({ ...prev, x: targetX, y: targetY }));
-            };
-
-            const autoLayout = () => {
-                const levelH = 250, gap = 80;
-                let currentX = 100;
-                const newNodes = [...nodes];
-                const adj = {};
-                links.forEach(l => { if(!adj[l.from]) adj[l.from] = []; adj[l.from].push(l.to); });
-                const roots = nodes.filter(n => !links.some(l => l.to === n.id)).map(n => n.id);
-
-                const traverse = (id, level) => {
-                    const node = newNodes.find(n => n.id === id);
-                    if(!node) return;
-                    const children = adj[id] || [];
-                    node.y = 150 + level * levelH;
-                    if(children.length === 0) {
-                        node.x = currentX;
-                        currentX += getNodeWidth(node.text) + gap;
-                        return node.x + getNodeWidth(node.text)/2;
-                    }
-                    const childCenters = children.map(cId => traverse(cId, level + 1));
-                    const center = (childCenters[0] + childCenters[childCenters.length-1]) / 2;
-                    node.x = center - getNodeWidth(node.text)/2;
-                    return center;
-                };
-                roots.forEach(r => traverse(r, 0));
-                setNodes(newNodes);
-                if (roots.length > 0) setTimeout(() => focusOnNode(roots[0]), 50);
+                const updatedNodes = [...nodes, newNode];
+                setNodes(updatedNodes);
+                setLinks([...links, { id: `link-${Date.now()}`, from: parent.id, to: newId }]);
+                setTimeout(() => focusAndZoom(newId, updatedNodes), 50);
             };
 
             const handleWheel = (e) => {
-                if (e.ctrlKey) {
+                if (e.ctrlKey || e.metaKey) {
                     e.preventDefault();
                     const zoomSpeed = 0.001;
-                    const delta = -e.deltaY * zoomSpeed;
-                    setTransform(prev => ({ ...prev, scale: Math.min(Math.max(0.2, prev.scale + delta), 3) }));
+                    const newScale = Math.min(Math.max(0.1, transform.scale - e.deltaY * zoomSpeed), 3);
+                    const rect = containerRef.current.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    const mouseY = e.clientY - rect.top;
+                    const worldX = (mouseX - transform.x) / transform.scale;
+                    const worldY = (mouseY - transform.y) / transform.scale;
+                    setTransform({ x: mouseX - worldX * newScale, y: mouseY - worldY * newScale, scale: newScale });
                 } else {
                     setTransform(prev => ({ ...prev, x: prev.x - e.deltaX, y: prev.y - e.deltaY }));
-                }
-            };
-
-            const handleMouseDown = (e) => {
-                if (e.button === 1 || e.altKey || e.target === containerRef.current) {
-                    setIsCanvasDragging(true);
-                    if (e.target === containerRef.current) setSelectedId(null);
                 }
             };
 
@@ -181,178 +227,282 @@
                 }
             };
 
-            const handleMouseUp = () => {
-                setDraggingId(null);
-                setIsCanvasDragging(false);
+            const autoLayout = () => {
+                const levelH = 250, gap = 80;
+                let currentX = 1000;
+                const newNodes = JSON.parse(JSON.stringify(nodes));
+                const adj = {};
+                links.forEach(l => { if(!adj[l.from]) adj[l.from] = []; adj[l.from].push(l.to); });
+                const roots = nodes.filter(n => !links.some(l => l.to === n.id)).map(n => n.id);
+                const traverse = (id, level) => {
+                    const node = newNodes.find(n => n.id === id);
+                    if(!node) return 0;
+                    const children = adj[id] || [];
+                    node.y = 1500 + level * levelH;
+                    if(children.length === 0) {
+                        node.x = currentX;
+                        const w = getNodeWidth(node.text);
+                        currentX += w + gap;
+                        return node.x + w / 2;
+                    }
+                    const childCenters = children.map(cId => traverse(cId, level + 1));
+                    const center = (childCenters[0] + childCenters[childCenters.length-1]) / 2;
+                    node.x = center - getNodeWidth(node.text) / 2;
+                    return center;
+                };
+                roots.forEach(r => traverse(r, 0));
+                setNodes(newNodes);
+                setTimeout(() => autoFocusAll(newNodes), 50);
             };
 
-            const handleImageUpload = (file) => {
-                if (!file || !selectedId) return;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    setNodes(nodes.map(n => n.id === selectedId ? { ...n, image: e.target.result } : n));
+            // 構建樹狀結構數據供 Hierarchy 使用
+            const hierarchyData = useMemo(() => {
+                const adj = {};
+                links.forEach(l => { if(!adj[l.from]) adj[l.from] = []; adj[l.from].push(l.to); });
+                const roots = nodes.filter(n => !links.some(l => l.to === n.id));
+                
+                const buildTree = (node, depth = 0) => {
+                    const children = (adj[node.id] || []).map(childId => {
+                        const childNode = nodes.find(n => n.id === childId);
+                        return childNode ? buildTree(childNode, depth + 1) : null;
+                    }).filter(Boolean);
+                    return { ...node, children, depth };
                 };
-                reader.readAsDataURL(file);
+                
+                return roots.map(r => buildTree(r));
+            }, [nodes, links]);
+
+            const selectedNode = useMemo(() => nodes.find(n => n.id === selectedId), [nodes, selectedId]);
+
+            const renderHierarchyList = (treeNodes) => {
+                return treeNodes.map(node => (
+                    <div key={node.id}>
+                        <div 
+                            className={`hierarchy-item text-sm ${selectedId === node.id ? 'active' : 'text-slate-400'}`}
+                            style={{ paddingLeft: `${node.depth * 20 + 8}px` }}
+                            onClick={() => {
+                                setSelectedId(node.id);
+                                setSideTab('edit');
+                                focusAndZoom(node.id);
+                            }}
+                        >
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: node.color }}></span>
+                            {node.text}
+                        </div>
+                        {node.children && renderHierarchyList(node.children)}
+                    </div>
+                ));
             };
 
             return (
-                <div className="flex h-screen text-slate-100 overflow-hidden relative select-none">
+                <div className="flex h-screen text-slate-100 overflow-hidden relative select-none bg-[#050b18]">
                     <div className="flex flex-col flex-grow relative overflow-hidden">
-                        <header className="bg-slate-800/90 backdrop-blur-md border-b border-slate-700 p-3 flex justify-between items-center z-50 shadow-2xl">
+                        <header className="bg-slate-900/95 backdrop-blur-xl border-b border-white/5 p-3 flex justify-between items-center z-[100] shadow-2xl">
                             <div className="flex items-center gap-4 px-2">
-                                <div className="bg-amber-500 p-2 rounded-xl text-slate-900 shadow-lg"><SvgIcon name="layout" /></div>
+                                <div className="bg-amber-500 p-2 rounded-xl text-slate-900 shadow-lg shadow-amber-500/20"><SvgIcon name="layout" /></div>
                                 <div>
-                                    <h1 className="font-bold text-lg italic leading-tight text-white">WEN Editor</h1>
-                                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Flow Annotation</p>
+                                    <h1 className="font-bold text-lg tracking-tight text-white uppercase italic">WEN Navigator</h1>
+                                    <p className="text-[10px] text-slate-500 font-medium tracking-widest">HIERARCHICAL EXPLORER</p>
                                 </div>
                             </div>
                             
-                            <div className="flex items-center gap-3 pr-2">
+                            <div className="flex items-center gap-2">
+                                <button onClick={addNode} className="btn-action btn-primary">
+                                    <SvgIcon name="plus" className="w-4 h-4" /> 新增節點
+                                </button>
+                                <button onClick={autoLayout} className="btn-action btn-secondary">
+                                    <SvgIcon name="layout" className="w-4 h-4" /> 自動排版
+                                </button>
+                                <div className="h-6 w-[1px] bg-white/10 mx-1"></div>
+                                <button onClick={() => fileInputRef.current.click()} className="btn-action btn-secondary">
+                                    <SvgIcon name="upload" className="w-4 h-4" /> 匯入
+                                </button>
                                 <button onClick={() => {
-                                    const data = JSON.stringify({ nodes, links });
-                                    const blob = new Blob([data], { type: 'application/json' });
-                                    const url = URL.createObjectURL(blob);
+                                    const blob = new Blob([JSON.stringify({ nodes, links })], { type: 'application/json' });
                                     const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = `wen-export.json`;
+                                    a.href = URL.createObjectURL(blob);
+                                    a.download = `mindmap-${Date.now()}.json`;
                                     a.click();
-                                }} title="匯出" className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-all"><SvgIcon name="download" /></button>
-                                
-                                <button onClick={() => fileInputRef.current.click()} title="匯入" className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-all"><SvgIcon name="upload" /></button>
+                                }} className="btn-action btn-secondary bg-slate-800 text-emerald-400">
+                                    <SvgIcon name="download" className="w-4 h-4" /> 匯出
+                                </button>
                                 <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={(e) => {
                                     const file = e.target.files[0];
-                                    if(!file) return;
+                                    if (!file) return;
                                     const reader = new FileReader();
                                     reader.onload = (ev) => {
-                                        const parsed = JSON.parse(ev.target.result);
-                                        setNodes(parsed.nodes || []);
-                                        setLinks(parsed.links || []);
+                                        try {
+                                            const d = JSON.parse(ev.target.result);
+                                            if(d.nodes && d.links) { 
+                                                setNodes(d.nodes); 
+                                                setLinks(d.links); 
+                                                setTimeout(() => autoFocusAll(d.nodes), 100); 
+                                            }
+                                        } catch(err) { console.error("Invalid File"); }
                                     };
                                     reader.readAsText(file);
                                 }} />
-
-                                <div className="h-6 w-px bg-slate-700 mx-1"></div>
-                                <button onClick={addNewNodeAtCenter} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-bold flex items-center gap-2 transition-all">
-                                    <SvgIcon name="plus" className="w-4 h-4 text-amber-500" /> 新增
-                                </button>
-                                <button onClick={autoLayout} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg transition-all">
-                                    <SvgIcon name="layout" className="w-4 h-4" /> 自動排版
-                                </button>
                             </div>
                         </header>
 
                         <main 
                             ref={containerRef} 
-                            className="flex-grow relative bg-slate-950 canvas-bg overflow-hidden cursor-grab active:cursor-grabbing"
+                            className="flex-grow relative canvas-bg overflow-hidden cursor-grab active:cursor-grabbing"
                             onWheel={handleWheel}
-                            onMouseDown={handleMouseDown}
+                            onMouseDown={(e) => { if(e.button === 1 || e.target === containerRef.current) setIsCanvasDragging(true); }}
                             onMouseMove={handleMouseMove}
-                            onMouseUp={handleMouseUp}
-                            onMouseLeave={handleMouseUp}
-                            onContextMenu={(e) => e.preventDefault()}
+                            onMouseUp={() => { setIsCanvasDragging(false); setDraggingId(null); }}
                         >
                             <div 
-                                className="absolute inset-0 pointer-events-none"
+                                className="absolute inset-0 pointer-events-none canvas-container"
                                 style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`, transformOrigin: '0 0' }}
                             >
-                                <svg className="absolute inset-0 w-[10000px] h-[10000px]">
-                                    {links.map(l => {
-                                        const s = nodes.find(n => n.id === l.from), t = nodes.find(n => n.id === l.to);
-                                        if (!s || !t) return null;
-                                        const x1 = s.x + getNodeWidth(s.text)/2, y1 = s.y + 60, x2 = t.x + getNodeWidth(t.text)/2, y2 = t.y;
-                                        return <path key={l.id} d={`M${x1},${y1} C${x1},${(y1+y2)/2} ${x2},${(y1+y2)/2} ${x2},${y2}`} className="link-path pointer-events-auto" />;
-                                    })}
+                                <svg className="absolute inset-0 w-full h-full overflow-visible">
+                                    <defs>
+                                        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1" opacity="0.6" />
+                                        </marker>
+                                    </defs>
+                                    <g>
+                                        {links.map(l => {
+                                            const s = nodes.find(n => n.id === l.from), t = nodes.find(n => n.id === l.to);
+                                            if (!s || !t) return null;
+                                            const x1 = s.x + getNodeWidth(s.text)/2, y1 = s.y + 60;
+                                            const x2 = t.x + getNodeWidth(t.text)/2, y2 = t.y;
+                                            return <path key={l.id} d={`M${x1},${y1} C${x1},${(y1+y2)/2} ${x2},${(y1+y2)/2} ${x2},${y2}`} className="link-path" markerEnd="url(#arrow)" />;
+                                        })}
+                                    </g>
                                 </svg>
 
                                 {nodes.map(n => (
                                     <div key={n.id} style={{ left: n.x, top: n.y, width: getNodeWidth(n.text), borderColor: n.color }}
-                                         className={`node-card bg-slate-900 rounded-xl shadow-2xl flex items-center justify-center p-2 pointer-events-auto ${selectedId === n.id ? 'selected' : ''}`}
-                                         onMouseDown={(e) => { e.stopPropagation(); setSelectedId(n.id); setDraggingId(n.id); }}>
-                                        <div className="port -top-1.5" onMouseDown={(e) => { e.stopPropagation(); if(selectedId && selectedId !== n.id) setLinks([...links, {id:Date.now(), from:selectedId, to:n.id}]); }} />
-                                        <textarea className="text-input no-scrollbar" value={n.text} onChange={(e) => setNodes(nodes.map(node => node.id === n.id ? {...node, text: e.target.value} : node))} />
-                                        <div className="port -bottom-1.5" onMouseDown={(e) => { e.stopPropagation(); setSelectedId(n.id); }} />
+                                         className={`node-card bg-[#111827] rounded-xl shadow-2xl flex items-center justify-center p-2 pointer-events-auto border-white/5 ${selectedId === n.id ? 'selected shadow-indigo-500/40 scale-105' : ''}`}
+                                         onMouseDown={(e) => { 
+                                            e.stopPropagation(); 
+                                            setSelectedId(n.id); 
+                                            setDraggingId(n.id); 
+                                            focusAndZoom(n.id);
+                                         }}>
                                         
-                                        {(n.note || n.image) && (
-                                            <div className="absolute -top-3 -left-3 flex gap-1">
-                                                {n.note && <div className="bg-amber-500 text-slate-900 p-1 rounded shadow-lg"><SvgIcon name="note" className="w-3 h-3" /></div>}
-                                                {n.image && <div className="bg-sky-500 text-slate-900 p-1 rounded shadow-lg"><SvgIcon name="image" className="w-3 h-3" /></div>}
-                                            </div>
-                                        )}
+                                        <div className="port -top-1.5" onMouseDown={(e) => { 
+                                            e.stopPropagation(); 
+                                            if(selectedId && selectedId !== n.id) {
+                                                const exists = links.find(l => (l.from === selectedId && l.to === n.id));
+                                                if(!exists) setLinks([...links, {id:`link-${Date.now()}`, from:selectedId, to:n.id}]); 
+                                            }
+                                        }} />
+                                        
+                                        <textarea className="text-input no-scrollbar" value={n.text} onChange={(e) => setNodes(nodes.map(node => node.id === n.id ? {...node, text: e.target.value} : node))} />
+                                        
+                                        <div className="port -bottom-1.5" onMouseDown={(e) => { e.stopPropagation(); setSelectedId(n.id); focusAndZoom(n.id); }} />
+                                        
+                                        <div className="absolute -top-3 -left-3 flex gap-1">
+                                            {n.note && <div className="bg-amber-500 text-slate-900 p-1 rounded-lg shadow-lg scale-90"><SvgIcon name="note" className="w-3.5 h-3.5" /></div>}
+                                            {n.image && <div className="bg-sky-500 text-slate-900 p-1 rounded-lg shadow-lg scale-90"><SvgIcon name="image" className="w-3.5 h-3.5" /></div>}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
-
-                            <div className="absolute bottom-6 left-6 z-40 flex items-center gap-2 bg-slate-800/80 backdrop-blur px-3 py-2 rounded-xl border border-slate-700 shadow-2xl">
-                                <span className="text-xs font-mono text-slate-400">比例:</span>
-                                <input 
-                                    type="text" 
-                                    className="w-10 bg-slate-950 text-xs text-center outline-none text-amber-400 border border-slate-700 rounded py-0.5" 
-                                    value={scaleInput}
-                                    onChange={(e) => setScaleInput(e.target.value)}
-                                    onKeyDown={handleScaleSubmit}
-                                />
-                                <span className="text-[10px] text-slate-500">%</span>
-                                <button onClick={() => setTransform({ x: 0, y: 0, scale: 1 })} className="text-slate-400 hover:text-white ml-2"><SvgIcon name="refresh" className="w-4 h-4" /></button>
-                            </div>
                         </main>
+                        
+                        <div className="absolute bottom-6 left-6 z-[100] flex items-center gap-3 bg-slate-900/80 backdrop-blur border border-white/5 px-4 py-2 rounded-full text-[10px] font-bold tracking-widest text-slate-400">
+                            <span>SCALE: {Math.round(transform.scale * 100)}%</span>
+                            <div className="w-[1px] h-3 bg-white/10"></div>
+                            <span>NODES: {nodes.length}</span>
+                        </div>
                     </div>
 
-                    <button 
-                        onClick={() => setIsSidePanelOpen(!isSidePanelOpen)}
-                        className="absolute top-1/2 -translate-y-1/2 z-[110] bg-slate-800 border border-slate-700 p-1 rounded-l-lg hover:bg-slate-700 transition-all"
-                        style={{ right: isSidePanelOpen ? '320px' : '0' }}
-                    >
-                        <SvgIcon name={isSidePanelOpen ? "chevronRight" : "chevronLeft"} className="w-4 h-4 text-amber-500" />
+                    <button onClick={() => setIsSidePanelOpen(!isSidePanelOpen)} className="absolute top-1/2 -translate-y-1/2 z-[110] bg-slate-800 border border-white/10 p-1.5 rounded-l-xl hover:bg-slate-700 transition-colors" style={{ right: isSidePanelOpen ? '320px' : '0' }}>
+                        <SvgIcon name={isSidePanelOpen ? "chevronRight" : "chevronLeft"} className="w-5 h-5 text-amber-500" />
                     </button>
 
-                    <aside className={`bg-slate-900 border-l border-slate-700 side-panel h-full z-[100] shadow-2xl overflow-hidden ${isSidePanelOpen ? 'w-80' : 'w-0'}`}>
-                        {selectedNode ? (
-                            <div className="w-80 p-6 flex flex-col h-full overflow-y-auto no-scrollbar">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-amber-500 font-bold flex items-center gap-2 text-lg"><SvgIcon name="note" /> 註解詳情</h2>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => focusOnNode(selectedId)} className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-400 hover:text-white p-2 rounded-lg transition-all border border-indigo-600/30">
-                                            <SvgIcon name="locate" className="w-4 h-4" />
-                                        </button>
-                                        <button onClick={() => { setNodes(nodes.filter(n => n.id !== selectedId)); setLinks(links.filter(l => l.from !== selectedId && l.to !== selectedId)); setSelectedId(null); }} className="bg-red-500/20 hover:bg-red-600 text-red-400 hover:text-white p-2 rounded-lg transition-all border border-red-500/30">
-                                            <SvgIcon name="x" className="w-4 h-4" />
-                                        </button>
-                                    </div>
+                    <aside className={`bg-[#0f172a] border-l border-white/5 side-panel h-full z-[100] shadow-2xl flex flex-col ${isSidePanelOpen ? 'w-80' : 'w-0'}`}>
+                        {isSidePanelOpen && (
+                            <React.Fragment>
+                                <div className="flex border-b border-white/5">
+                                    <button onClick={() => setSideTab('edit')} className={`flex-1 tab-btn flex items-center justify-center gap-2 ${sideTab === 'edit' ? 'active' : ''}`}>
+                                        <SvgIcon name="settings" className="w-4 h-4" /> 編輯屬性
+                                    </button>
+                                    <button onClick={() => setSideTab('hierarchy')} className={`flex-1 tab-btn flex items-center justify-center gap-2 ${sideTab === 'hierarchy' ? 'active' : ''}`}>
+                                        <SvgIcon name="list" className="w-4 h-4" /> 階層導覽
+                                    </button>
                                 </div>
-                                
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase block mb-2">主題色</label>
-                                        <input type="color" className="w-full h-10 bg-slate-800 rounded-lg cursor-pointer p-1" value={selectedNode.color} onChange={(e) => setNodes(nodes.map(nd => nd.id === selectedId ? {...nd, color: e.target.value} : nd))}/>
-                                    </div>
 
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase block mb-2">備註內容</label>
-                                        <textarea className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-slate-300 outline-none focus:border-indigo-500 min-h-[200px] leading-relaxed no-scrollbar" placeholder="輸入備註..." value={selectedNode.note || ""} onChange={(e) => setNodes(nodes.map(nd => nd.id === selectedId ? {...nd, note: e.target.value} : nd))} />
-                                    </div>
+                                <div className="flex-grow overflow-y-auto no-scrollbar p-6">
+                                    {sideTab === 'edit' ? (
+                                        selectedNode ? (
+                                            <div className="space-y-6">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <h2 className="text-amber-500 font-bold flex items-center gap-2 uppercase tracking-tighter"><SvgIcon name="note" /> Node Editor</h2>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => focusAndZoom(selectedId)} className="bg-indigo-600/20 text-indigo-400 p-2 rounded-lg hover:bg-indigo-600/30"><SvgIcon name="locate" className="w-4 h-4" /></button>
+                                                        <button onClick={() => {
+                                                            if(selectedId === 'root') return;
+                                                            setNodes(nodes.filter(n => n.id !== selectedId));
+                                                            setLinks(links.filter(l => l.from !== selectedId && l.to !== selectedId));
+                                                            setSelectedId(null);
+                                                        }} className="bg-red-500/20 text-red-400 p-2 rounded-lg hover:bg-red-500/30"><SvgIcon name="x" className="w-4 h-4" /></button>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="space-y-3">
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Theme Color</label>
+                                                    <div className="flex gap-2 flex-wrap">
+                                                        {['#f59e0b', '#ef4444', '#3b82f6', '#10b981', '#8b5cf6', '#0ea5e9', '#ec4899'].map(c => (
+                                                            <button key={c} onClick={() => setNodes(nodes.map(n => n.id === selectedId ? {...n, color: c} : n))} 
+                                                                className={`w-8 h-8 rounded-lg border-2 transition-all active:scale-90 ${selectedNode.color === c ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-40 hover:opacity-100'}`}
+                                                                style={{ backgroundColor: c }} />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="space-y-3">
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Detailed Content</label>
+                                                    <textarea className="w-full bg-slate-950 border border-white/5 rounded-xl p-4 text-sm text-slate-300 outline-none h-48 focus:border-indigo-500/50 transition-colors leading-relaxed" placeholder="在這裡輸入更詳細的說明內容..." value={selectedNode.note || ""} onChange={(e) => setNodes(nodes.map(nd => nd.id === selectedId ? {...nd, note: e.target.value} : nd))} />
+                                                </div>
 
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase block mb-2">圖片</label>
-                                        {!selectedNode.image ? (
-                                            <button onClick={() => imageInputRef.current.click()} className="w-full h-32 border-2 border-dashed border-slate-800 hover:border-indigo-500 rounded-xl flex flex-col items-center justify-center text-slate-600 hover:text-indigo-400 bg-slate-900/50">
-                                                <SvgIcon name="image" className="w-8 h-8 mb-2 opacity-50" />
-                                                <span className="text-xs">點擊或貼上圖片</span>
-                                            </button>
-                                        ) : (
-                                            <div className="relative rounded-xl overflow-hidden border border-slate-800">
-                                                <img src={selectedNode.image} className="w-full h-auto" />
-                                                <button onClick={() => setNodes(nodes.map(n => n.id === selectedId ? {...n, image: null} : n))} className="absolute top-2 right-2 bg-red-500 p-1 rounded-md text-white"><SvgIcon name="x" className="w-3 h-3" /></button>
+                                                <div className="space-y-3">
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Image Content</label>
+                                                    {!selectedNode.image ? (
+                                                        <button onClick={() => imageInputRef.current.click()} className="w-full h-32 border-2 border-dashed border-white/5 rounded-xl flex flex-col items-center justify-center text-slate-600 hover:text-indigo-400 hover:border-indigo-500/30 transition-all bg-slate-950/50">
+                                                            <SvgIcon name="image" className="w-8 h-8 mb-2" />
+                                                            <span className="text-xs font-bold uppercase">Upload Image</span>
+                                                        </button>
+                                                    ) : (
+                                                        <div className="relative rounded-xl overflow-hidden group shadow-2xl border border-white/10">
+                                                            <img src={selectedNode.image} className="w-full h-auto" />
+                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                <button onClick={() => setNodes(nodes.map(n => n.id === selectedId ? {...n, image: null} : n))} className="bg-red-500 text-white p-2 rounded-xl shadow-xl hover:bg-red-600 transition-colors">
+                                                                    <SvgIcon name="x" className="w-5 h-5" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={(e) => {
+                                                        const f = e.target.files[0]; if(!f) return;
+                                                        const r = new FileReader(); r.onload = (ev) => setNodes(nodes.map(n => n.id === selectedId ? {...n, image: ev.target.result} : n)); r.readAsDataURL(f);
+                                                    }} />
+                                                </div>
                                             </div>
-                                        )}
-                                        <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e.target.files[0])} />
-                                    </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center h-64 opacity-20">
+                                                <SvgIcon name="settings" className="w-12 h-12 mb-4" />
+                                                <p className="text-[10px] font-bold tracking-widest uppercase">Select a node to edit</p>
+                                            </div>
+                                        )
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <h2 className="text-amber-500 font-bold flex items-center gap-2 uppercase tracking-tighter mb-4"><SvgIcon name="list" /> Tree Hierarchy</h2>
+                                            <div className="bg-slate-950/50 rounded-xl p-2 border border-white/5">
+                                                {renderHierarchyList(hierarchyData)}
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 mt-4 leading-relaxed">
+                                                提示：點擊階層項目可快速定位到該節點，畫布將自動縮放至 100%。
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="w-80 p-10 flex flex-col items-center justify-center h-full text-slate-600 text-center opacity-40">
-                                <SvgIcon name="layout" className="w-16 h-16 mb-4" />
-                                <p className="text-sm font-bold leading-loose">選擇畫布上的節點<br/>以開啟詳細註解面板</p>
-                            </div>
+                            </React.Fragment>
                         )}
                     </aside>
                 </div>
