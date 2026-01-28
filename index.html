@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ＷＥＮ樹狀階層導航編輯器</title>
+    <title>ＷＥＮ樹狀階層編輯器</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -129,7 +129,7 @@
 
         const App = () => {
             const [nodes, setNodes] = useState([
-                { id: 'root', text: '核心主題', x: 2000, y: 2000, color: '#f59e0b', note: '', image: null }
+                { id: 'root', text: '主題', x: 2000, y: 2000, color: '#f59e0b', note: '', image: null }
             ]);
             const [links, setLinks] = useState([]);
             const [transform, setTransform] = useState({ x: 0, y: 0, scale: 0.8 });
@@ -187,7 +187,7 @@
                 const newId = `node-${Date.now()}`;
                 const newNode = {
                     id: newId,
-                    text: '新分支',
+                    text: '新',
                     x: parent.x + 250,
                     y: parent.y + (Math.random() * 100 - 50),
                     color: parent.color,
@@ -301,8 +301,8 @@
                             <div className="flex items-center gap-4 px-2">
                                 <div className="bg-amber-500 p-2 rounded-xl text-slate-900 shadow-lg shadow-amber-500/20"><SvgIcon name="layout" /></div>
                                 <div>
-                                    <h1 className="font-bold text-lg tracking-tight text-white uppercase italic">WEN Navigator</h1>
-                                    <p className="text-[10px] text-slate-500 font-medium tracking-widest">HIERARCHICAL EXPLORER</p>
+                                    <h1 className="font-bold text-lg tracking-tight text-white uppercase italic">WEN 樹狀圖編輯器</h1>
+                                    <p className="text-[10px] text-slate-500 font-medium tracking-widest">請隨時匯出儲存</p>
                                 </div>
                             </div>
                             
