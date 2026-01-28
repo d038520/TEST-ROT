@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ＷＥＮ樹狀階層導航編輯器 - 貼圖增強版</title>
+    <title>ＷＥＮ樹狀階層導航編輯器 - 圖片放大版</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -111,6 +111,20 @@
             transition: opacity 0.3s;
         }
         .toast.show { opacity: 1; }
+
+        .lightbox-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            cursor: zoom-out;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -158,6 +172,7 @@
             const [isCanvasDragging, setIsCanvasDragging] = useState(false);
             const [selectedId, setSelectedId] = useState('root');
             const [toast, setToast] = useState({ show: false, message: '' });
+            const [zoomImage, setZoomImage] = useState(null); // Lightbox 圖片狀態
             
             const containerRef = useRef(null);
             const fileInputRef = useRef(null);
@@ -204,6 +219,9 @@
 
             useEffect(() => {
                 autoFocusAll(nodes);
+                const handleEsc = (e) => { if (e.key === 'Escape') setZoomImage(null); };
+                window.addEventListener('keydown', handleEsc);
+                return () => window.removeEventListener('keydown', handleEsc);
             }, []);
 
             const addNode = () => {
@@ -279,7 +297,6 @@
                 setTimeout(() => autoFocusAll(newNodes), 50);
             };
 
-            // 處理貼上圖片
             const handlePaste = (e) => {
                 const items = e.clipboardData?.items;
                 if (!items) return;
@@ -290,7 +307,7 @@
                         const reader = new FileReader();
                         reader.onload = (event) => {
                             setNodes(nds => nds.map(n => n.id === selectedId ? { ...n, image: event.target.result } : n));
-                            showToast('已從剪貼簿貼上圖片！');
+                            showToast('已貼上圖片！');
                         };
                         reader.readAsDataURL(blob);
                         break;
@@ -340,6 +357,16 @@
                 <div className="flex h-screen text-slate-100 overflow-hidden relative select-none bg-[#050b18]">
                     <div className={`toast ${toast.show ? 'show' : ''}`}>{toast.message}</div>
                     
+                    {/* Lightbox 圖片放大層 */}
+                    {zoomImage && (
+                        <div className="lightbox-overlay" onClick={() => setZoomImage(null)}>
+                            <button className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white">
+                                <SvgIcon name="x" className="w-8 h-8" />
+                            </button>
+                            <img src={zoomImage} className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl cursor-default" onClick={(e) => e.stopPropagation()} />
+                        </div>
+                    )}
+
                     <div className="flex flex-col flex-grow relative overflow-hidden">
                         <header className="bg-slate-900/95 backdrop-blur-xl border-b border-white/5 p-3 flex justify-between items-center z-[100] shadow-2xl">
                             <div className="flex items-center gap-4 px-2">
@@ -441,8 +468,8 @@
                                         <div className="port -bottom-1.5" onMouseDown={(e) => { e.stopPropagation(); setSelectedId(n.id); focusAndZoom(n.id); }} />
                                         
                                         <div className="absolute -top-3 -left-3 flex gap-1">
-                                            {n.note && <div className="bg-amber-500 text-slate-900 p-1 rounded-lg shadow-lg scale-90"><SvgIcon name="note" className="w-3.5 h-3.5" /></div>}
-                                            {n.image && <div className="bg-sky-500 text-slate-900 p-1 rounded-lg shadow-lg scale-90"><SvgIcon name="image" className="w-3.5 h-3.5" /></div>}
+                                            {n.note && <div className="bg-amber-500 text-slate-900 p-1 rounded-lg shadow-lg scale-90 border border-amber-400/50"><SvgIcon name="note" className="w-3.5 h-3.5" /></div>}
+                                            {n.image && <div className="bg-sky-500 text-slate-900 p-1 rounded-lg shadow-lg scale-90 border border-sky-400/50"><SvgIcon name="image" className="w-3.5 h-3.5" /></div>}
                                         </div>
                                     </div>
                                 ))}
@@ -501,10 +528,10 @@
                                                 </div>
                                                 
                                                 <div className="space-y-3">
-                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">詳細內容 (支援 Ctrl+V 貼圖)</label>
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">詳細內容 (支援貼圖)</label>
                                                     <textarea 
                                                         className="w-full bg-slate-950 border border-white/5 rounded-xl p-4 text-sm text-slate-300 outline-none h-48 focus:border-indigo-500/50 transition-colors leading-relaxed" 
-                                                        placeholder="在這裡輸入詳細說明，或按 Ctrl+V 貼上圖片..." 
+                                                        placeholder="在這裡輸入詳細說明，或 Ctrl+V 貼上圖片..." 
                                                         value={selectedNode.note || ""} 
                                                         onPaste={handlePaste}
                                                         onChange={(e) => setNodes(nodes.map(nd => nd.id === selectedId ? {...nd, note: e.target.value} : nd))} 
@@ -512,20 +539,24 @@
                                                 </div>
 
                                                 <div className="space-y-3">
-                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">附圖預覽</label>
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">附圖預覽 (點擊放大)</label>
                                                     {!selectedNode.image ? (
                                                         <button onClick={() => imageInputRef.current.click()} className="w-full h-32 border-2 border-dashed border-white/5 rounded-xl flex flex-col items-center justify-center text-slate-600 hover:text-indigo-400 hover:border-indigo-500/30 transition-all bg-slate-950/50">
                                                             <SvgIcon name="image" className="w-8 h-8 mb-2" />
                                                             <span className="text-xs font-bold uppercase">點擊上傳或貼上圖片</span>
                                                         </button>
                                                     ) : (
-                                                        <div className="relative rounded-xl overflow-hidden group shadow-2xl border border-white/10">
-                                                            <img src={selectedNode.image} className="w-full h-auto" />
-                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                                <button onClick={() => setNodes(nodes.map(n => n.id === selectedId ? {...n, image: null} : n))} className="bg-red-500 text-white p-2 rounded-xl shadow-xl hover:bg-red-600 transition-colors">
-                                                                    <SvgIcon name="x" className="w-5 h-5" />
-                                                                </button>
+                                                        <div className="relative rounded-xl overflow-hidden group shadow-2xl border border-white/10 bg-black cursor-zoom-in" onClick={() => setZoomImage(selectedNode.image)}>
+                                                            <img src={selectedNode.image} className="w-full h-auto max-h-60 object-contain" />
+                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                                                <span className="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-xs font-bold">查看大圖</span>
                                                             </div>
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); setNodes(nodes.map(n => n.id === selectedId ? {...n, image: null} : n)); }} 
+                                                                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-lg shadow-xl hover:bg-red-600 transition-colors pointer-events-auto"
+                                                            >
+                                                                <SvgIcon name="x" className="w-4 h-4" />
+                                                            </button>
                                                         </div>
                                                     )}
                                                     <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={(e) => {
@@ -546,9 +577,6 @@
                                             <div className="bg-slate-950/50 rounded-xl p-2 border border-white/5">
                                                 {renderHierarchyList(hierarchyData)}
                                             </div>
-                                            <p className="text-[10px] text-slate-500 mt-4 leading-relaxed">
-                                                提示：點擊階層項目可快速定位到該節點，畫布將自動縮放至 100%。
-                                            </p>
                                         </div>
                                     )}
                                 </div>
