@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ＷＥＮ樹狀詳細註解學習編輯器</title>
+    <title>ＷＥＮ樹狀詳細註解編輯器</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -86,6 +86,31 @@
                         setTransform(prev => ({ ...prev, scale: newScale }));
                     }
                 }
+            };
+
+            // 重要：計算畫布正中央對應的世界座標
+            const getCanvasCenterInWorld = () => {
+                if (!containerRef.current) return { x: 200, y: 200 };
+                const rect = containerRef.current.getBoundingClientRect();
+                const centerX = (rect.width / 2 - transform.x) / transform.scale;
+                const centerY = (rect.height / 2 - transform.y) / transform.scale;
+                return { x: centerX, y: centerY };
+            };
+
+            const addNewNodeAtCenter = () => {
+                const center = getCanvasCenterInWorld();
+                const newNode = { 
+                    id: `n-${Date.now()}`, 
+                    text: '新主題', 
+                    // 稍微偏移讓節點中心對準計算出的中央位置
+                    x: center.x - 80, 
+                    y: center.y - 30, 
+                    color: '#94a3b8', 
+                    note: '', 
+                    image: null 
+                };
+                setNodes(nds => [...nds, newNode]);
+                setSelectedId(newNode.id);
             };
 
             const focusOnNode = (nodeId) => {
@@ -207,7 +232,7 @@
                                 }} />
 
                                 <div className="h-6 w-px bg-slate-700 mx-1"></div>
-                                <button onClick={() => setNodes([...nodes, { id: `n-${Date.now()}`, text: '新主題', x: 200, y: 200, color: '#94a3b8', note: '', image: null }])} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-bold flex items-center gap-2 transition-all">
+                                <button onClick={addNewNodeAtCenter} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-bold flex items-center gap-2 transition-all">
                                     <SvgIcon name="plus" className="w-4 h-4 text-amber-500" /> 新增
                                 </button>
                                 <button onClick={autoLayout} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg transition-all">
