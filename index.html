@@ -10,8 +10,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { margin: 0; background-color: #0f172a; font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; overflow: hidden; }
-        .node-card { transition: transform 0.2s, box-shadow 0.2s; border-left: 4px solid; min-height: 60px; cursor: pointer; }
-        .node-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4); }
+        .node-card { transition: border-color 0.2s, box-shadow 0.2s; border-left: 4px solid; min-height: 60px; cursor: pointer; position: absolute; }
+        .node-card:hover { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4); }
         .node-card.selected { outline: 2px solid #6366f1; outline-offset: 4px; z-index: 30; }
         .port { width: 12px; height: 12px; border-radius: 50%; background: #475569; border: 2px solid #0f172a; cursor: crosshair; position: absolute; left: 50%; transform: translateX(-50%); z-index: 20; }
         .port:hover { background: #fbbf24; transform: translateX(-50%) scale(1.3); }
@@ -19,18 +19,19 @@
         .link-path:hover { stroke: #f87171; stroke-width: 4; }
         .canvas-bg { background-image: radial-gradient(#1e293b 1px, transparent 1px); background-size: 24px 24px; }
         .text-input { background: transparent; border: none; resize: none; color: white; width: 100%; text-align: center; outline: none; font-size: 14px; font-weight: 600; min-height: 40px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .side-panel { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        
-        /* 按鈕進階樣式 */
+        .side-panel { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease; }
         .btn-action { transition: all 0.2s ease; position: relative; overflow: hidden; }
         .btn-action:active { transform: scale(0.95); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .img-preview-container { position: relative; width: 100%; border-radius: 0.75rem; overflow: hidden; margin-top: 1rem; border: 1px solid #1e293b; background: #020617; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useRef, useEffect } = React;
+        const { useState, useRef, useEffect, useMemo } = React;
 
         const SvgIcon = ({ name, className = "w-5 h-5" }) => {
             const icons = {
@@ -39,7 +40,11 @@
                 download: <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 12 12 16.5m0 0L16.5 12M12 16.5V3" />,
                 upload: <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />,
                 x: <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />,
-                note: <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                note: <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />,
+                chevronRight: <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />,
+                chevronLeft: <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />,
+                refresh: <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />,
+                image: <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6.75a1.5 1.5 0 0 0-1.5-1.5H3.75a1.5 1.5 0 0 0-1.5 1.5v12.75a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
             };
             return (
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
@@ -50,23 +55,29 @@
 
         const App = () => {
             const [nodes, setNodes] = useState([
-                { id: 'root', text: '新主題', x: 400, y: 50, color: '#f59e0b', note: '註解內容' }
+                { id: 'root', text: '核心主題', x: 400, y: 150, color: '#f59e0b', note: '這是一個包含圖片說明的節點。', image: null }
             ]);
             const [links, setLinks] = useState([]);
+            
+            const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+            const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
+            
             const [dragging, setDragging] = useState(null);
+            const [canvasDragging, setCanvasDragging] = useState(false);
             const [connecting, setConnecting] = useState(null);
             const [selectedId, setSelectedId] = useState(null);
+            
             const containerRef = useRef(null);
             const fileInputRef = useRef(null);
+            const imageInputRef = useRef(null);
 
-            const selectedNode = nodes.find(n => n.id === selectedId);
+            const selectedNode = useMemo(() => nodes.find(n => n.id === selectedId), [nodes, selectedId]);
             const getNodeWidth = (text) => Math.min(Math.max(160, 140 + text.length * 12), 350);
 
-            // 自動排版邏輯
             const autoLayout = (currentNodes = nodes, currentLinks = links) => {
-                const levelH = 150;
-                const gap = 50;
-                let currentX = 50;
+                const levelH = 200;
+                const gap = 60;
+                let currentX = 100;
                 const newNodes = [...currentNodes];
                 const adj = {};
                 currentLinks.forEach(l => { if(!adj[l.from]) adj[l.from] = []; adj[l.from].push(l.to); });
@@ -76,7 +87,7 @@
                     const node = newNodes.find(n => n.id === id);
                     if(!node) return;
                     const children = adj[id] || [];
-                    node.y = 50 + level * levelH;
+                    node.y = 100 + level * levelH;
                     if(children.length === 0) {
                         node.x = currentX;
                         currentX += getNodeWidth(node.text) + gap;
@@ -89,7 +100,66 @@
                 };
                 roots.forEach(r => traverse(r, 0));
                 setNodes(newNodes);
+                setTransform({ x: 0, y: 0, scale: 1 });
             };
+
+            const handleWheel = (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    const zoomSpeed = 0.001;
+                    const delta = -e.deltaY * zoomSpeed;
+                    const newScale = Math.min(Math.max(0.2, transform.scale + delta), 3);
+                    setTransform(prev => ({ ...prev, scale: newScale }));
+                } else if (!dragging && !canvasDragging) {
+                    setTransform(prev => ({ ...prev, x: prev.x - e.deltaX, y: prev.y - e.deltaY }));
+                }
+            };
+
+            const handleMouseDown = (e) => {
+                if (e.button === 1 || (e.button === 0 && e.altKey)) {
+                    setCanvasDragging(true);
+                } else if (e.target === containerRef.current) {
+                    setSelectedId(null);
+                }
+            };
+
+            const handleMouseMove = (e) => {
+                if (canvasDragging) {
+                    setTransform(prev => ({ ...prev, x: prev.x + e.movementX, y: prev.y + e.movementY }));
+                    return;
+                }
+                if (dragging) {
+                    setNodes(nds => nds.map(n => n.id === dragging 
+                        ? { ...n, x: n.x + e.movementX / transform.scale, y: n.y + e.movementY / transform.scale } 
+                        : n
+                    ));
+                }
+            };
+
+            const handleImageUpload = (file) => {
+                if (!file || !selectedId) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    setNodes(nodes.map(n => n.id === selectedId ? { ...n, image: e.target.result } : n));
+                };
+                reader.readAsDataURL(file);
+            };
+
+            // 支援貼上圖片
+            useEffect(() => {
+                const handlePaste = (e) => {
+                    if (!selectedId) return;
+                    const items = e.clipboardData.items;
+                    for (let i = 0; i < items.length; i++) {
+                        if (items[i].type.indexOf("image") !== -1) {
+                            const blob = items[i].getAsFile();
+                            handleImageUpload(blob);
+                        }
+                    }
+                };
+                window.addEventListener('paste', handlePaste);
+                return () => window.removeEventListener('paste', handlePaste);
+            }, [selectedId, nodes]);
 
             const exportData = () => {
                 const data = JSON.stringify({ nodes, links }, null, 2);
@@ -97,7 +167,7 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `AI_備忘錄_${Date.now()}.json`;
+                a.download = `WEN_Notes_${Date.now()}.json`;
                 a.click();
             };
 
@@ -111,27 +181,25 @@
                         if (parsed.nodes && parsed.links) {
                             setNodes(parsed.nodes);
                             setLinks(parsed.links);
-                            // 匯入後自動排版，提升 UX
                             setTimeout(() => autoLayout(parsed.nodes, parsed.links), 100);
                         }
                     } catch (err) { alert("檔案格式不正確！"); }
                 };
                 reader.readAsText(file);
-                e.target.value = null; // 清除以便下次上傳
+                e.target.value = null;
             };
 
             const handleAddNode = () => {
                 const id = `node-${Date.now()}`;
                 const newNode = {
-                    id: id,
-                    text: '新主題',
-                    x: 100 + Math.random() * 200,
-                    y: 100 + Math.random() * 200,
-                    color: '#94a3b8',
-                    note: ''
+                    id: id, text: '新主題',
+                    x: (window.innerWidth / 2 - transform.x) / transform.scale - 80,
+                    y: (window.innerHeight / 2 - transform.y) / transform.scale - 30,
+                    color: '#94a3b8', note: '', image: null
                 };
                 setNodes([...nodes, newNode]);
                 setSelectedId(id);
+                setIsSidePanelOpen(true);
             };
 
             const handleConnect = (nodeId, type) => {
@@ -148,126 +216,182 @@
             return (
                 <div className="flex h-screen text-slate-100 overflow-hidden relative">
                     <div className="flex flex-col flex-grow relative overflow-hidden">
-                        {/* 頂部導覽列 - UI 優化 */}
+                        {/* Header */}
                         <header className="bg-slate-800 border-b border-slate-700 p-3 flex justify-between items-center z-50 shadow-xl">
                             <div className="flex items-center gap-4 px-2">
-                                <div className="bg-amber-500 p-2.5 rounded-xl text-slate-900 shadow-lg shadow-amber-500/20">
+                                <div className="bg-amber-500 p-2.5 rounded-xl text-slate-900 shadow-lg">
                                     <SvgIcon name="layout" />
                                 </div>
                                 <div>
-                                    <h1 className="font-bold text-lg tracking-tight">ＷＥＮ樹狀詳細註解編輯器</h1>
+                                    <h1 className="font-bold text-lg tracking-tight italic">ＷＥＮ樹狀詳細註解編輯器</h1>
                                     <div className="flex items-center gap-2">
-                                        <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                        <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">Editor Active</p>
+                                        <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                                        <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">Workspace Pro</p>
                                     </div>
                                 </div>
                             </div>
                             
                             <div className="flex items-center gap-3 pr-2">
-                                {/* 主要功能區 */}
                                 <div className="flex bg-slate-900/50 p-1 rounded-xl border border-slate-700/50">
                                     <button onClick={handleAddNode} className="btn-action px-4 py-2 hover:bg-slate-700 rounded-lg text-sm font-bold flex items-center gap-2 text-slate-300">
                                         <SvgIcon name="plus" className="w-4 h-4 text-amber-500" /> 新增
                                     </button>
-                                    <button onClick={() => autoLayout()} className="btn-action px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/20 ml-1">
+                                    <button onClick={() => autoLayout()} className="btn-action px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg ml-1">
                                         <SvgIcon name="layout" className="w-4 h-4" /> 自動排版
                                     </button>
                                 </div>
-
                                 <div className="w-px h-8 bg-slate-700 mx-1"></div>
-
-                                {/* 檔案功能區 - 統一按鈕 UI */}
                                 <div className="flex gap-2">
-                                    <button onClick={exportData} className="btn-action px-5 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-600/10">
-                                        <SvgIcon name="download" className="w-4 h-4" /> 匯出 JSON
+                                    <button onClick={exportData} className="btn-action px-5 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg">
+                                        <SvgIcon name="download" className="w-4 h-4" /> 匯出
                                     </button>
-                                    <button onClick={() => fileInputRef.current.click()} className="btn-action px-5 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg">
-                                        <SvgIcon name="upload" className="w-4 h-4 text-sky-400" /> 匯入 JSON
+                                    <button onClick={() => fileInputRef.current.click()} className="btn-action px-5 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-sm font-bold flex items-center gap-2">
+                                        <SvgIcon name="upload" className="w-4 h-4 text-sky-400" /> 匯入
                                     </button>
                                     <input type="file" ref={fileInputRef} className="hidden" onChange={importData} accept=".json" />
                                 </div>
                             </div>
                         </header>
 
-                        {/* 畫布區域 */}
-                        <main ref={containerRef} className="flex-grow relative bg-slate-950 canvas-bg overflow-hidden"
-                              onMouseDown={(e) => e.target === containerRef.current && setSelectedId(null)}
-                              onMouseMove={(e) => {
-                                  if (!dragging) return;
-                                  const rect = containerRef.current.getBoundingClientRect();
-                                  setNodes(nds => nds.map(n => n.id === dragging ? { ...n, x: e.clientX - rect.left - 80, y: e.clientY - rect.top - 30 } : n));
-                              }}
-                              onMouseUp={() => setDragging(null)}>
-                            
-                            <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                                {links.map(l => {
-                                    const s = nodes.find(n => n.id === l.from);
-                                    const t = nodes.find(n => n.id === l.to);
-                                    if (!s || !t) return null;
-                                    const sw = getNodeWidth(s.text), tw = getNodeWidth(t.text);
-                                    const x1 = s.x + sw/2, y1 = s.y + 60, x2 = t.x + tw/2, y2 = t.y;
-                                    return <path key={l.id} d={`M${x1},${y1} C${x1},${(y1+y2)/2} ${x2},${(y1+y2)/2} ${x2},${y2}`} className="link-path" onClick={() => setLinks(links.filter(li => li.id !== l.id))} />;
+                        {/* Canvas */}
+                        <main 
+                            ref={containerRef} 
+                            className="flex-grow relative bg-slate-950 canvas-bg overflow-hidden cursor-grab active:cursor-grabbing"
+                            onWheel={handleWheel}
+                            onMouseDown={handleMouseDown}
+                            onMouseMove={handleMouseMove}
+                            onMouseUp={() => { setDragging(null); setCanvasDragging(false); }}
+                            onContextMenu={(e) => e.preventDefault()}
+                        >
+                            <div 
+                                style={{ 
+                                    transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
+                                    transformOrigin: '0 0',
+                                    transition: dragging || canvasDragging ? 'none' : 'transform 0.1s ease-out'
+                                }}
+                                className="absolute inset-0 pointer-events-none"
+                            >
+                                <svg className="absolute inset-0 w-[8000px] h-[8000px]">
+                                    {links.map(l => {
+                                        const s = nodes.find(n => n.id === l.from);
+                                        const t = nodes.find(n => n.id === l.to);
+                                        if (!s || !t) return null;
+                                        const sw = getNodeWidth(s.text), tw = getNodeWidth(t.text);
+                                        const x1 = s.x + sw/2, y1 = s.y + 60, x2 = t.x + tw/2, y2 = t.y;
+                                        return (
+                                            <path key={l.id} d={`M${x1},${y1} C${x1},${(y1+y2)/2} ${x2},${(y1+y2)/2} ${x2},${y2}`} className="link-path pointer-events-auto" onClick={(e) => { e.stopPropagation(); setLinks(links.filter(li => li.id !== l.id)); }} />
+                                        );
+                                    })}
+                                </svg>
+
+                                {nodes.map(n => {
+                                    const isSelected = selectedId === n.id;
+                                    const hasNote = (n.note && n.note.length > 0) || n.image;
+                                    return (
+                                        <div key={n.id} style={{ left: n.x, top: n.y, width: getNodeWidth(n.text), borderColor: n.color }}
+                                             className={`node-card bg-slate-900 rounded-xl shadow-2xl flex items-center justify-center p-2 group pointer-events-auto ${isSelected ? 'selected' : ''}`}
+                                             onMouseDown={(e) => { e.stopPropagation(); setSelectedId(n.id); setDragging(n.id); }}>
+                                            <div className="port -top-1.5" onMouseDown={(e) => { e.stopPropagation(); handleConnect(n.id, 'top'); }} />
+                                            
+                                            {hasNote && (
+                                                <div className="absolute -top-3 -left-3 flex gap-1">
+                                                    {n.note && (
+                                                        <div className="bg-amber-500 text-slate-900 p-1.5 rounded-lg shadow-lg border-2 border-slate-900">
+                                                            <SvgIcon name="note" className="w-3.5 h-3.5" />
+                                                        </div>
+                                                    )}
+                                                    {n.image && (
+                                                        <div className="bg-sky-500 text-slate-900 p-1.5 rounded-lg shadow-lg border-2 border-slate-900">
+                                                            <SvgIcon name="image" className="w-3.5 h-3.5" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <textarea className="text-input no-scrollbar" value={n.text} onChange={(e) => setNodes(nodes.map(node => node.id === n.id ? {...node, text: e.target.value} : node))} />
+                                            <div className="port -bottom-1.5" onMouseDown={(e) => { e.stopPropagation(); handleConnect(n.id, 'bottom'); }} />
+                                            
+                                            <button onClick={(e) => { e.stopPropagation(); setNodes(nodes.filter(nd => nd.id !== n.id)); }} className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border-2 border-slate-900 shadow-lg">
+                                                <SvgIcon name="x" className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    );
                                 })}
-                            </svg>
+                            </div>
 
-                            {nodes.map(n => {
-                                const isSelected = selectedId === n.id;
-                                const hasNote = n.note && n.note.length > 0;
-                                return (
-                                    <div key={n.id} style={{ left: n.x, top: n.y, width: getNodeWidth(n.text), borderColor: n.color }}
-                                         className={`absolute bg-slate-900 rounded-xl shadow-xl flex items-center justify-center node-card p-2 group ${isSelected ? 'selected' : ''}`}
-                                         onMouseDown={(e) => { e.stopPropagation(); setSelectedId(n.id); setDragging(n.id); }}>
-                                        
-                                        <div className="port -top-1.5" onMouseDown={(e) => { e.stopPropagation(); handleConnect(n.id, 'top'); }} title="連線點" />
-                                        
-                                        {hasNote && (
-                                            <div className="absolute -top-3 -left-3 bg-amber-500 text-slate-900 p-1.5 rounded-lg shadow-lg scale-90 border-2 border-slate-900">
-                                                <SvgIcon name="note" className="w-3.5 h-3.5" />
-                                            </div>
-                                        )}
-
-                                        <textarea 
-                                            className="text-input" value={n.text}
-                                            onChange={(e) => setNodes(nodes.map(node => node.id === n.id ? {...node, text: e.target.value} : node))} 
-                                        />
-
-                                        <div className="port -bottom-1.5" onMouseDown={(e) => { e.stopPropagation(); handleConnect(n.id, 'bottom'); }} title="連線點" />
-                                        
-                                        <button onClick={(e) => { e.stopPropagation(); setNodes(nodes.filter(nd => nd.id !== n.id)); }} 
-                                                className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border-2 border-slate-900 shadow-lg">
-                                            <SvgIcon name="x" className="w-3 h-3" />
-                                        </button>
-                                    </div>
-                                );
-                            })}
+                            <div className="absolute bottom-6 left-6 flex items-center gap-3 z-40">
+                                <div className="bg-slate-800/80 backdrop-blur px-4 py-2 rounded-xl border border-slate-700 flex items-center gap-4 shadow-2xl">
+                                    <span className="text-xs font-mono text-slate-400">ZOOM: {Math.round(transform.scale * 100)}%</span>
+                                    <button onClick={() => setTransform({ x: 0, y: 0, scale: 1 })} className="text-slate-400 hover:text-white transition-colors"><SvgIcon name="refresh" className="w-4 h-4" /></button>
+                                </div>
+                            </div>
                         </main>
                     </div>
 
-                    {/* 右側註解面板 */}
-                    <aside className={`w-80 bg-slate-900 border-l border-slate-700 side-panel absolute md:relative top-0 right-0 h-full z-[100] transform shadow-2xl ${selectedId ? 'translate-x-0' : 'translate-x-full'}`}>
+                    {!isSidePanelOpen && (
+                        <button onClick={() => setIsSidePanelOpen(true)} className="absolute right-0 top-1/2 -translate-y-1/2 bg-slate-800 border-l border-y border-slate-700 p-2 rounded-l-xl z-[110] hover:bg-slate-700 text-slate-400 hover:text-white shadow-xl"><SvgIcon name="chevronLeft" /></button>
+                    )}
+
+                    {/* Right Panel */}
+                    <aside className={`bg-slate-900 border-l border-slate-700 side-panel h-full z-[100] shadow-2xl relative overflow-hidden ${isSidePanelOpen ? 'w-80' : 'w-0'}`}>
                         {selectedNode && (
-                            <div className="p-6 flex flex-col h-full">
+                            <div className="w-80 p-6 flex flex-col h-full overflow-y-auto no-scrollbar">
                                 <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
-                                    <h2 className="text-amber-500 font-bold flex items-center gap-2"><SvgIcon name="note" /> 內容註解</h2>
-                                    <button onClick={() => setSelectedId(null)} className="text-slate-500 hover:text-white bg-slate-800 p-1 rounded"><SvgIcon name="x" className="w-4 h-4" /></button>
+                                    <h2 className="text-amber-500 font-bold flex items-center gap-2"><SvgIcon name="note" /> 詳細註解</h2>
+                                    <button onClick={() => setIsSidePanelOpen(false)} className="text-slate-500 hover:text-white bg-slate-800 p-1.5 rounded-lg transition-colors"><SvgIcon name="chevronRight" className="w-4 h-4" /></button>
                                 </div>
+                                
                                 <div className="mb-6">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase block mb-2 tracking-widest">節點色彩標籤</label>
-                                    <input type="color" className="w-full h-10 bg-slate-800 border-none rounded-lg cursor-pointer" value={selectedNode.color} 
-                                           onChange={(e) => setNodes(nodes.map(nd => nd.id === selectedId ? {...nd, color: e.target.value} : nd))}/>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase block mb-2 tracking-widest">標籤顏色</label>
+                                    <input type="color" className="w-full h-10 bg-slate-800 border-none rounded-lg cursor-pointer p-1" value={selectedNode.color} onChange={(e) => setNodes(nodes.map(nd => nd.id === selectedId ? {...nd, color: e.target.value} : nd))}/>
                                 </div>
-                                <div className="flex-grow flex flex-col">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase block mb-2 tracking-widest">詳細筆記 / 知識點解釋</label>
+
+                                <div className="mb-6">
+                                    <div className="flex justify-between items-end mb-2">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">文字內容</label>
+                                        <span className="text-[10px] text-slate-600">支援貼上圖片</span>
+                                    </div>
                                     <textarea 
-                                        className="flex-grow bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-slate-300 outline-none focus:border-indigo-500 shadow-inner resize-none leading-relaxed"
-                                        placeholder="註解內容"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-slate-300 outline-none focus:border-indigo-500 shadow-inner resize-none min-h-[120px] leading-relaxed no-scrollbar"
+                                        placeholder="輸入詳細內容..."
                                         value={selectedNode.note || ""}
                                         onChange={(e) => setNodes(nodes.map(nd => nd.id === selectedId ? {...nd, note: e.target.value} : nd))}
                                     />
                                 </div>
-                                <div className="mt-4 pt-4 border-t border-slate-800">
-                                    <p className="text-[10px] text-slate-500 italic text-center">內容會隨時自動儲存</p>
+
+                                <div className="mb-6">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase block mb-2 tracking-widest">圖片註解</label>
+                                    {!selectedNode.image ? (
+                                        <button 
+                                            onClick={() => imageInputRef.current.click()}
+                                            className="w-full h-32 border-2 border-dashed border-slate-800 hover:border-indigo-500 rounded-xl flex flex-col items-center justify-center text-slate-600 hover:text-indigo-400 transition-all bg-slate-900/50"
+                                        >
+                                            <SvgIcon name="image" className="w-8 h-8 mb-2" />
+                                            <span className="text-xs">點擊上傳或貼上圖片</span>
+                                        </button>
+                                    ) : (
+                                        <div className="img-preview-container group">
+                                            <img src={selectedNode.image} className="w-full h-auto object-contain max-h-64" alt="Note Preview" />
+                                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button 
+                                                    onClick={() => setNodes(nodes.map(n => n.id === selectedId ? {...n, image: null} : n))}
+                                                    className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-xl"
+                                                >移除圖片</button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e.target.files[0])} />
                                 </div>
+                                
+                                <div className="mt-auto pt-4 text-[10px] text-slate-500 leading-normal bg-slate-800/30 p-3 rounded-lg border border-slate-800/50">
+                                    💡 提示：您可以直接在右側編輯區按 <kbd className="bg-slate-700 px-1 rounded">Ctrl+V</kbd> 快速貼上圖片。所有資料（含圖片）均可匯出為單一 JSON 檔案。
+                                </div>
+                            </div>
+                        )}
+                        {!selectedNode && isSidePanelOpen && (
+                            <div className="w-80 p-6 flex flex-col items-center justify-center h-full text-slate-500 text-center">
+                                <SvgIcon name="note" className="w-12 h-12 mb-4 opacity-20" />
+                                <p className="text-sm">選取節點以編輯註解<br/><span className="text-xs opacity-50 mt-2 block">(支援文字與圖片)</span></p>
                             </div>
                         )}
                     </aside>
