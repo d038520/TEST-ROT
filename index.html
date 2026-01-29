@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ＷＥＮ樹狀階層導覽編輯器 - 連線管理版</title>
+    <title>ＷＥＮ樹狀階層導覽編輯器 - 水平連線版</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -27,14 +27,19 @@
             z-index: 10;
         }
         .node-card.selected { outline: 2px solid #6366f1; outline-offset: 4px; z-index: 50; }
+        
+        /* 修改 Port 位置為左右 */
         .port { 
             width: 12px; height: 12px; border-radius: 50%; 
             background: #475569; border: 2px solid #0f172a; 
             cursor: crosshair; position: absolute; 
-            left: 50%; transform: translateX(-50%); 
+            top: 50%; transform: translateY(-50%); 
             z-index: 20; 
         }
-        .port:hover { background: #fbbf24; transform: translateX(-50%) scale(1.3); }
+        .port-left { left: -7px; }
+        .port-right { right: -7px; }
+        .port:hover { background: #fbbf24; transform: translateY(-50%) scale(1.3); }
+
         .link-path { fill: none; stroke: rgba(99, 102, 241, 0.4); stroke-width: 2.5; transition: stroke 0.2s; pointer-events: none; }
         .text-input { 
             background: transparent; border: none; resize: none; 
@@ -243,7 +248,7 @@
                 const newNode = {
                     id: newId,
                     text: '新分支',
-                    x: parent.x + 250,
+                    x: parent.x + 300, // 水平延伸
                     y: parent.y + (Math.random() * 100 - 50),
                     color: parent.color,
                     note: '',
@@ -282,29 +287,33 @@
                 }
             };
 
+            // 重要：修改為水平排版算法
             const autoLayout = () => {
-                const levelH = 250, gap = 80;
-                let currentX = 1000;
+                const levelW = 320, gap = 40;
+                let currentY = 1500;
                 const newNodes = JSON.parse(JSON.stringify(nodes));
                 const adj = {};
                 links.forEach(l => { if(!adj[l.from]) adj[l.from] = []; adj[l.from].push(l.to); });
                 const roots = nodes.filter(n => !links.some(l => l.to === n.id)).map(n => n.id);
+                
                 const traverse = (id, level) => {
                     const node = newNodes.find(n => n.id === id);
                     if(!node) return 0;
                     const children = adj[id] || [];
-                    node.y = 1500 + level * levelH;
+                    node.x = 1000 + level * levelW;
+                    
                     if(children.length === 0) {
-                        node.x = currentX;
-                        const w = getNodeWidth(node.text);
-                        currentX += w + gap;
-                        return node.x + w / 2;
+                        node.y = currentY;
+                        currentY += 100 + gap; // 垂直間距
+                        return node.y + 30; // 返回中心點
                     }
+                    
                     const childCenters = children.map(cId => traverse(cId, level + 1));
                     const center = (childCenters[0] + childCenters[childCenters.length-1]) / 2;
-                    node.x = center - getNodeWidth(node.text) / 2;
+                    node.y = center - 30; // 父節點居中於子節點
                     return center;
                 };
+                
                 roots.forEach(r => traverse(r, 0));
                 setNodes(newNodes);
                 setTimeout(() => autoFocusAll(newNodes), 50);
@@ -313,7 +322,6 @@
             const handlePaste = (e) => {
                 const items = e.clipboardData?.items;
                 if (!items) return;
-
                 for (let i = 0; i < items.length; i++) {
                     if (items[i].type.indexOf('image') !== -1) {
                         const blob = items[i].getAsFile();
@@ -332,7 +340,6 @@
                 const adj = {};
                 links.forEach(l => { if(!adj[l.from]) adj[l.from] = []; adj[l.from].push(l.to); });
                 const roots = nodes.filter(n => !links.some(l => l.to === n.id));
-                
                 const buildTree = (node, depth = 0) => {
                     const children = (adj[node.id] || []).map(childId => {
                         const childNode = nodes.find(n => n.id === childId);
@@ -340,12 +347,10 @@
                     }).filter(Boolean);
                     return { ...node, children, depth };
                 };
-                
                 return roots.map(r => buildTree(r));
             }, [nodes, links]);
 
             const selectedNode = useMemo(() => nodes.find(n => n.id === selectedId), [nodes, selectedId]);
-
             const outgoingLinks = useMemo(() => links.filter(l => l.from === selectedId), [links, selectedId]);
 
             const deleteLink = (linkId) => {
@@ -374,7 +379,7 @@
             };
 
             return (
-                <div className="flex h-screen text-slate-100 overflow-hidden relative select-none bg-[#050b18]">
+                <div className="flex h-screen text-slate-100 overflow-hidden relative select-none bg-[#050b18]" onPaste={handlePaste}>
                     <div className={`toast ${toast.show ? 'show' : ''}`}>{toast.message}</div>
                     
                     {zoomImage && (
@@ -392,30 +397,22 @@
                                 <div className="bg-amber-500 p-2 rounded-xl text-slate-900 shadow-lg shadow-amber-500/20"><SvgIcon name="layout" /></div>
                                 <div>
                                     <h1 className="font-bold text-lg tracking-tight text-white uppercase italic">WEN Navigator</h1>
-                                    <p className="text-[10px] text-slate-500 font-medium tracking-widest">VISUAL NOTES ENGINE</p>
+                                    <p className="text-[10px] text-slate-500 font-medium tracking-widest">HORIZONTAL ENGINE</p>
                                 </div>
                             </div>
                             
                             <div className="flex items-center gap-2">
-                                <button onClick={addNode} className="btn-action btn-primary">
-                                    <SvgIcon name="plus" className="w-4 h-4" /> 新增節點
-                                </button>
-                                <button onClick={autoLayout} className="btn-action btn-secondary">
-                                    <SvgIcon name="layout" className="w-4 h-4" /> 自動排版
-                                </button>
+                                <button onClick={addNode} className="btn-action btn-primary"><SvgIcon name="plus" className="w-4 h-4" /> 新增節點</button>
+                                <button onClick={autoLayout} className="btn-action btn-secondary"><SvgIcon name="layout" className="w-4 h-4" /> 自動排版</button>
                                 <div className="h-6 w-[1px] bg-white/10 mx-1"></div>
-                                <button onClick={() => fileInputRef.current.click()} className="btn-action btn-secondary">
-                                    <SvgIcon name="upload" className="w-4 h-4" /> 匯入
-                                </button>
+                                <button onClick={() => fileInputRef.current.click()} className="btn-action btn-secondary"><SvgIcon name="upload" className="w-4 h-4" /> 匯入</button>
                                 <button onClick={() => {
                                     const blob = new Blob([JSON.stringify({ nodes, links })], { type: 'application/json' });
                                     const a = document.createElement('a');
                                     a.href = URL.createObjectURL(blob);
                                     a.download = `mindmap-${Date.now()}.json`;
                                     a.click();
-                                }} className="btn-action btn-secondary bg-slate-800 text-emerald-400">
-                                    <SvgIcon name="download" className="w-4 h-4" /> 匯出
-                                </button>
+                                }} className="btn-action btn-secondary bg-slate-800 text-emerald-400"><SvgIcon name="download" className="w-4 h-4" /> 匯出</button>
                                 <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={(e) => {
                                     const file = e.target.files[0];
                                     if (!file) return;
@@ -423,11 +420,7 @@
                                     reader.onload = (ev) => {
                                         try {
                                             const d = JSON.parse(ev.target.result);
-                                            if(d.nodes && d.links) { 
-                                                setNodes(d.nodes); 
-                                                setLinks(d.links); 
-                                                setTimeout(() => autoFocusAll(d.nodes), 100); 
-                                            }
+                                            if(d.nodes && d.links) { setNodes(d.nodes); setLinks(d.links); setTimeout(() => autoFocusAll(d.nodes), 100); }
                                         } catch(err) { console.error("Invalid File"); }
                                     };
                                     reader.readAsText(file);
@@ -457,9 +450,12 @@
                                         {links.map(l => {
                                             const s = nodes.find(n => n.id === l.from), t = nodes.find(n => n.id === l.to);
                                             if (!s || !t) return null;
-                                            const x1 = s.x + getNodeWidth(s.text)/2, y1 = s.y + 60;
-                                            const x2 = t.x + getNodeWidth(t.text)/2, y2 = t.y;
-                                            return <path key={l.id} d={`M${x1},${y1} C${x1},${(y1+y2)/2} ${x2},${(y1+y2)/2} ${x2},${y2}`} className="link-path" markerEnd="url(#arrow)" />;
+                                            // 修改為水平貝茲曲線路徑
+                                            const x1 = s.x + getNodeWidth(s.text), y1 = s.y + 30;
+                                            const x2 = t.x, y2 = t.y + 30;
+                                            const cp1x = x1 + (x2 - x1) / 2;
+                                            const cp2x = x2 - (x2 - x1) / 2;
+                                            return <path key={l.id} d={`M${x1},${y1} C${cp1x},${y1} ${cp2x},${y2} ${x2},${y2}`} className="link-path" markerEnd="url(#arrow)" />;
                                         })}
                                     </g>
                                 </svg>
@@ -474,7 +470,8 @@
                                             focusAndZoom(n.id);
                                          }}>
                                         
-                                        <div className="port -top-1.5" onMouseDown={(e) => { 
+                                        {/* Port 修改為左右兩側 */}
+                                        <div className="port port-left" onMouseDown={(e) => { 
                                             e.stopPropagation(); 
                                             if(selectedId && selectedId !== n.id) {
                                                 const exists = links.find(l => (l.from === selectedId && l.to === n.id));
@@ -482,9 +479,13 @@
                                             }
                                         }} />
                                         
-                                        <textarea className="text-input no-scrollbar" value={n.text} onChange={(e) => setNodes(nodes.map(node => node.id === n.id ? {...node, text: e.target.value} : node))} />
+                                        <textarea 
+                                            className="text-input no-scrollbar" 
+                                            value={n.text} 
+                                            onChange={(e) => setNodes(nodes.map(node => node.id === n.id ? {...node, text: e.target.value} : node))} 
+                                        />
                                         
-                                        <div className="port -bottom-1.5" onMouseDown={(e) => { e.stopPropagation(); setSelectedId(n.id); focusAndZoom(n.id); }} />
+                                        <div className="port port-right" onMouseDown={(e) => { e.stopPropagation(); setSelectedId(n.id); focusAndZoom(n.id); }} />
                                         
                                         <div className="absolute -top-3 -left-3 flex gap-1">
                                             {n.note && <div className="bg-amber-500 text-slate-900 p-1 rounded-lg shadow-lg scale-90 border border-amber-400/50"><SvgIcon name="note" className="w-3.5 h-3.5" /></div>}
@@ -529,99 +530,98 @@
                                                     </div>
                                                 </div>
                                                 
-                                                <div className="space-y-3">
-                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">主題顏色</label>
-                                                    <div className="flex gap-2 flex-wrap">
-                                                        {['#f59e0b', '#ef4444', '#3b82f6', '#10b981', '#8b5cf6', '#0ea5e9', '#ec4899'].map(c => (
-                                                            <button key={c} onClick={() => setNodes(nodes.map(n => n.id === selectedId ? {...n, color: c} : n))} 
-                                                                className={`w-8 h-8 rounded-lg border-2 transition-all active:scale-90 ${selectedNode.color === c ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-40 hover:opacity-100'}`}
-                                                                style={{ backgroundColor: c }} />
-                                                        ))}
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">內容文字</label>
+                                                        <textarea 
+                                                            className="w-full bg-slate-800/50 border border-white/10 rounded-xl p-3 text-sm focus:border-amber-500/50 outline-none transition-all min-h-[80px]"
+                                                            value={selectedNode.text}
+                                                            onChange={(e) => setNodes(nodes.map(n => n.id === selectedId ? { ...n, text: e.target.value } : n))}
+                                                        />
                                                     </div>
-                                                </div>
-                                                
-                                                <div className="space-y-3">
-                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">詳細內容 (支援貼圖)</label>
-                                                    <textarea 
-                                                        className="w-full bg-slate-950 border border-white/5 rounded-xl p-4 text-sm text-slate-300 outline-none h-40 focus:border-indigo-500/50 transition-colors leading-relaxed" 
-                                                        placeholder="在這裡輸入詳細說明，或 Ctrl+V 貼上圖片..." 
-                                                        value={selectedNode.note || ""} 
-                                                        onPaste={handlePaste}
-                                                        onChange={(e) => setNodes(nodes.map(nd => nd.id === selectedId ? {...nd, note: e.target.value} : nd))} 
-                                                    />
-                                                </div>
 
-                                                <div className="space-y-3">
-                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">連線管理 (下游節點)</label>
-                                                    {outgoingLinks.length > 0 ? (
+                                                    <div>
+                                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">詳細筆記</label>
+                                                        <textarea 
+                                                            placeholder="輸入更多補充資訊..."
+                                                            className="w-full bg-slate-800/50 border border-white/10 rounded-xl p-3 text-sm focus:border-indigo-500/50 outline-none transition-all min-h-[120px]"
+                                                            value={selectedNode.note}
+                                                            onChange={(e) => setNodes(nodes.map(n => n.id === selectedId ? { ...n, note: e.target.value } : n))}
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">主題色系</label>
+                                                        <div className="flex gap-2 flex-wrap">
+                                                            {['#f59e0b', '#ef4444', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#94a3b8'].map(c => (
+                                                                <button key={c} onClick={() => setNodes(nodes.map(n => n.id === selectedId ? { ...n, color: c } : n))}
+                                                                    className={`w-8 h-8 rounded-full border-2 transition-transform ${selectedNode.color === c ? 'scale-125 border-white' : 'border-transparent'}`}
+                                                                    style={{ backgroundColor: c }} />
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">參考圖片</label>
+                                                        {selectedNode.image ? (
+                                                            <div className="relative group rounded-xl overflow-hidden border border-white/10">
+                                                                <img src={selectedNode.image} className="w-full h-40 object-cover cursor-zoom-in" onClick={() => setZoomImage(selectedNode.image)} />
+                                                                <button onClick={() => setNodes(nodes.map(n => n.id === selectedId ? { ...n, image: null } : n))}
+                                                                    className="absolute top-2 right-2 bg-red-500 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><SvgIcon name="trash" className="w-4 h-4" /></button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer"
+                                                                 onClick={() => imageInputRef.current.click()}>
+                                                                <SvgIcon name="image" className="w-8 h-8 mx-auto mb-2 text-slate-600" />
+                                                                <p className="text-xs text-slate-500">點擊上傳或貼上圖片</p>
+                                                                <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={(e) => {
+                                                                    const file = e.target.files[0];
+                                                                    if (!file) return;
+                                                                    const reader = new FileReader();
+                                                                    reader.onload = (ev) => setNodes(nodes.map(n => n.id === selectedId ? { ...n, image: ev.target.result } : n));
+                                                                    reader.readAsDataURL(file);
+                                                                }} />
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">子連線管理 ({outgoingLinks.length})</label>
                                                         <div className="space-y-1">
                                                             {outgoingLinks.map(l => {
                                                                 const target = nodes.find(n => n.id === l.to);
                                                                 return (
                                                                     <div key={l.id} className="link-item group">
-                                                                        <div className="flex items-center gap-2 overflow-hidden">
-                                                                            <SvgIcon name="link" className="w-3.5 h-3.5 text-slate-500" />
-                                                                            <span className="text-xs text-slate-300 truncate font-medium">
-                                                                                {target?.text || '未知節點'}
-                                                                            </span>
-                                                                        </div>
-                                                                        <button 
-                                                                            onClick={() => deleteLink(l.id)}
-                                                                            className="text-slate-500 hover:text-red-400 p-1 rounded hover:bg-red-500/10 transition-colors"
-                                                                            title="移除此連線"
-                                                                        >
-                                                                            <SvgIcon name="x" className="w-3.5 h-3.5" />
-                                                                        </button>
+                                                                        <span className="text-xs truncate max-w-[180px] text-slate-400">→ {target?.text || '未知節點'}</span>
+                                                                        <button onClick={() => deleteLink(l.id)} className="text-slate-600 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-all"><SvgIcon name="x" className="w-4 h-4" /></button>
                                                                     </div>
                                                                 );
                                                             })}
+                                                            {outgoingLinks.length === 0 && <p className="text-xs text-slate-600 italic py-2">目前沒有向外的連線</p>}
                                                         </div>
-                                                    ) : (
-                                                        <div className="text-[10px] text-slate-600 italic">目前無下游連線</div>
-                                                    )}
-                                                </div>
-
-                                                <div className="space-y-3">
-                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">附圖預覽 (點擊放大)</label>
-                                                    {!selectedNode.image ? (
-                                                        <button onClick={() => imageInputRef.current.click()} className="w-full h-24 border-2 border-dashed border-white/5 rounded-xl flex flex-col items-center justify-center text-slate-600 hover:text-indigo-400 hover:border-indigo-500/30 transition-all bg-slate-950/50">
-                                                            <SvgIcon name="image" className="w-6 h-6 mb-1" />
-                                                            <span className="text-[10px] font-bold uppercase tracking-tight">點擊上傳或貼上圖片</span>
-                                                        </button>
-                                                    ) : (
-                                                        <div className="relative rounded-xl overflow-hidden group shadow-2xl border border-white/10 bg-black cursor-zoom-in" onClick={() => setZoomImage(selectedNode.image)}>
-                                                            <img src={selectedNode.image} className="w-full h-auto max-h-60 object-contain" />
-                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                                                <span className="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-xs font-bold">查看大圖</span>
-                                                            </div>
-                                                            <button 
-                                                                onClick={(e) => { e.stopPropagation(); setNodes(nodes.map(n => n.id === selectedId ? {...n, image: null} : n)); }} 
-                                                                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-lg shadow-xl hover:bg-red-600 transition-colors pointer-events-auto"
-                                                            >
-                                                                <SvgIcon name="x" className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                    <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={(e) => {
-                                                        const f = e.target.files[0]; if(!f) return;
-                                                        const r = new FileReader(); r.onload = (ev) => setNodes(nodes.map(n => n.id === selectedId ? {...n, image: ev.target.result} : n)); r.readAsDataURL(f);
-                                                    }} />
+                                                    </div>
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="flex flex-col items-center justify-center h-64 opacity-20">
-                                                <SvgIcon name="settings" className="w-12 h-12 mb-4" />
-                                                <p className="text-[10px] font-bold tracking-widest uppercase">Select a node to edit</p>
+                                            <div className="h-full flex flex-col items-center justify-center text-slate-600 text-center p-4">
+                                                <SvgIcon name="locate" className="w-12 h-12 mb-4 opacity-20" />
+                                                <p className="text-sm">請在畫布上選擇節點<br/>以進行詳細編輯</p>
                                             </div>
                                         )
                                     ) : (
                                         <div className="space-y-4">
-                                            <h2 className="text-amber-500 font-bold flex items-center gap-2 uppercase tracking-tighter mb-4"><SvgIcon name="list" /> Tree Hierarchy</h2>
-                                            <div className="bg-slate-950/50 rounded-xl p-2 border border-white/5">
+                                            <h2 className="text-amber-500 font-bold flex items-center gap-2 uppercase tracking-tighter mb-4"><SvgIcon name="list" /> Hierarchy</h2>
+                                            <div className="bg-slate-800/30 rounded-xl p-2 border border-white/5">
                                                 {renderHierarchyList(hierarchyData)}
                                             </div>
                                         </div>
                                     )}
+                                </div>
+                                <div className="p-4 bg-slate-900 border-t border-white/5">
+                                    <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                                        <span>Nodes: {nodes.length}</span>
+                                        <span>Links: {links.length}</span>
+                                    </div>
                                 </div>
                             </React.Fragment>
                         )}
