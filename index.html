@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ＷＥＮ樹狀階層導覽編輯器 - 全同步收合版</title>
+    <title>ＷＥＮ樹狀階層導覽編輯器 - 支援截圖貼上</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -223,6 +223,32 @@
 
             const getNodeWidth = (text) => Math.min(Math.max(160, 140 + (text?.length || 0) * 10), 400);
 
+            // Handle Paste functionality for screenshots
+            const handlePaste = useCallback((e) => {
+                if (!selectedId) return;
+                
+                const items = e.clipboardData.items;
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf("image") !== -1) {
+                        const blob = items[i].getAsFile();
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            setNodes(prevNodes => prevNodes.map(n => 
+                                n.id === selectedId ? { ...n, image: event.target.result } : n
+                            ));
+                            showToast("已從剪貼簿貼上圖片");
+                        };
+                        reader.readAsDataURL(blob);
+                        break;
+                    }
+                }
+            }, [selectedId]);
+
+            useEffect(() => {
+                document.addEventListener('paste', handlePaste);
+                return () => document.removeEventListener('paste', handlePaste);
+            }, [handlePaste]);
+
             // 遞迴獲取所有被隱藏（收合）的子節點 ID
             const getHiddenNodeIds = useCallback(() => {
                 const hidden = new Set();
@@ -394,10 +420,8 @@
                 showToast('已刪除連接線');
             };
 
-            // 修正渲染清單邏輯：檢查父節點是否被收合
             const renderHierarchyList = (treeNodes) => {
                 return treeNodes.map(node => {
-                    // 如果該節點在隱藏清單中，完全不渲染它及其子節點
                     if (hiddenNodeIds.has(node.id)) return null;
 
                     return (
@@ -416,7 +440,6 @@
                                     {node.text} {node.collapsed ? ' (已收合)' : ''}
                                 </span>
                             </div>
-                            {/* 只有在目前節點「未收合」時，才繼續渲染子節點 */}
                             {!node.collapsed && node.children && renderHierarchyList(node.children)}
                         </div>
                     );
@@ -442,7 +465,7 @@
                                 <div className="bg-amber-500 p-2 rounded-xl text-slate-900 shadow-lg shadow-amber-500/20"><SvgIcon name="layout" /></div>
                                 <div>
                                     <h1 className="font-bold text-lg tracking-tight text-white uppercase italic">WEN Navigator</h1>
-                                    <p className="text-[10px] text-slate-500 font-medium tracking-widest">SYNC COLLAPSE ENGINE</p>
+                                    <p className="text-[10px] text-slate-500 font-medium tracking-widest">SCREENSHOT CAPABLE</p>
                                 </div>
                             </div>
                             
@@ -645,7 +668,7 @@
                                                             <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer"
                                                                  onClick={() => imageInputRef.current.click()}>
                                                                 <SvgIcon name="image" className="w-8 h-8 mx-auto mb-2 text-slate-600" />
-                                                                <p className="text-xs text-slate-500">點擊上傳或貼上圖片</p>
+                                                                <p className="text-xs text-slate-500">點擊上傳或直接 Ctrl+V 貼上</p>
                                                                 <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={(e) => {
                                                                     const file = e.target.files[0];
                                                                     if (!file) return;
