@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ＷＥＮ樹狀階層導覽編輯器 - 水平連線版</title>
+    <title>ＷＥＮ樹狀階層導覽編輯器 - 全同步收合版</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -22,13 +22,12 @@
             position: absolute; 
             min-height: 60px; 
             cursor: move; 
-            transition: border-color 0.2s, box-shadow 0.2s, outline 0.2s; 
+            transition: border-color 0.2s, box-shadow 0.2s, outline 0.2s, opacity 0.3s; 
             border-left: 4px solid; 
             z-index: 10;
         }
         .node-card.selected { outline: 2px solid #6366f1; outline-offset: 4px; z-index: 50; }
         
-        /* 修改 Port 位置為左右 */
         .port { 
             width: 12px; height: 12px; border-radius: 50%; 
             background: #475569; border: 2px solid #0f172a; 
@@ -40,7 +39,27 @@
         .port-right { right: -7px; }
         .port:hover { background: #fbbf24; transform: translateY(-50%) scale(1.3); }
 
-        .link-path { fill: none; stroke: rgba(99, 102, 241, 0.4); stroke-width: 2.5; transition: stroke 0.2s; pointer-events: none; }
+        .toggle-btn {
+            position: absolute;
+            right: -24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 30;
+            color: #94a3b8;
+            transition: all 0.2s;
+        }
+        .toggle-btn:hover { background: #334155; color: white; }
+
+        .link-path { fill: none; stroke: rgba(99, 102, 241, 0.4); stroke-width: 2.5; transition: stroke 0.2s, opacity 0.3s; pointer-events: none; }
         .text-input { 
             background: transparent; border: none; resize: none; 
             color: white; width: 100%; text-align: center; 
@@ -87,7 +106,7 @@
             padding: 0.5rem;
             border-radius: 0.375rem;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -158,9 +177,10 @@
                 x: <path d="M6 18 18 6M6 6l12 12" />,
                 trash: <path d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />,
                 note: <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />,
-                image: <path d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6.75a1.5 1.5 0 0 0-1.5-1.5H3.75a1.5 1.5 0 0 0-1.5 1.5v12.75a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />,
+                image: <path d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6.75a1.5 1.5 0 0 0-1.5-1.5H3.75a1.5 1.5 0 0 0-1.5 1.5v12.75a1.5 1.5 0 0 0 1.5 1.5Zm10.5-1125h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />,
                 chevronLeft: <path d="M15.75 19.5 8.25 12l7.5-7.5" />,
                 chevronRight: <path d="m8.25 4.5 7.5 7.5-7.5 7.5" />,
+                chevronDown: <path d="m19.5 8.25-7.5 7.5-7.5-7.5" />,
                 link: <path d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />,
                 locate: (
                     <React.Fragment>
@@ -180,7 +200,7 @@
 
         const App = () => {
             const [nodes, setNodes] = useState([
-                { id: 'root', text: '核心主題', x: 2000, y: 2000, color: '#f59e0b', note: '', image: null }
+                { id: 'root', text: '核心主題', x: 2000, y: 2000, color: '#f59e0b', note: '', image: null, collapsed: false }
             ]);
             const [links, setLinks] = useState([]);
             const [transform, setTransform] = useState({ x: 0, y: 0, scale: 0.8 });
@@ -202,6 +222,32 @@
             };
 
             const getNodeWidth = (text) => Math.min(Math.max(160, 140 + (text?.length || 0) * 10), 400);
+
+            // 遞迴獲取所有被隱藏（收合）的子節點 ID
+            const getHiddenNodeIds = useCallback(() => {
+                const hidden = new Set();
+                const adj = {};
+                links.forEach(l => { if(!adj[l.from]) adj[l.from] = []; adj[l.from].push(l.to); });
+
+                const traverse = (nodeId, isParentCollapsed) => {
+                    const node = nodes.find(n => n.id === nodeId);
+                    if (!node) return;
+                    
+                    if (isParentCollapsed) {
+                        hidden.add(nodeId);
+                    }
+                    
+                    const children = adj[nodeId] || [];
+                    children.forEach(childId => traverse(childId, isParentCollapsed || node.collapsed));
+                };
+
+                const roots = nodes.filter(n => !links.some(l => l.to === n.id));
+                roots.forEach(root => traverse(root.id, root.collapsed));
+                
+                return hidden;
+            }, [nodes, links]);
+
+            const hiddenNodeIds = useMemo(() => getHiddenNodeIds(), [getHiddenNodeIds]);
 
             const focusAndZoom = useCallback((nodeId, customNodes = nodes) => {
                 const node = customNodes.find(n => n.id === nodeId);
@@ -248,16 +294,24 @@
                 const newNode = {
                     id: newId,
                     text: '新分支',
-                    x: parent.x + 300, // 水平延伸
+                    x: parent.x + 300, 
                     y: parent.y + (Math.random() * 100 - 50),
                     color: parent.color,
                     note: '',
-                    image: null
+                    image: null,
+                    collapsed: false
                 };
                 const updatedNodes = [...nodes, newNode];
                 setNodes(updatedNodes);
                 setLinks([...links, { id: `link-${Date.now()}`, from: parent.id, to: newId }]);
+                if(parent.collapsed) {
+                    setNodes(nds => nds.map(n => n.id === parent.id ? {...n, collapsed: false} : n));
+                }
                 setTimeout(() => focusAndZoom(newId, updatedNodes), 50);
+            };
+
+            const toggleCollapse = (id) => {
+                setNodes(nds => nds.map(n => n.id === id ? { ...n, collapsed: !n.collapsed } : n));
             };
 
             const handleWheel = (e) => {
@@ -287,7 +341,6 @@
                 }
             };
 
-            // 重要：修改為水平排版算法
             const autoLayout = () => {
                 const levelW = 500, gap = 50;
                 let currentY = 1500;
@@ -304,36 +357,19 @@
                     
                     if(children.length === 0) {
                         node.y = currentY;
-                        currentY += 100 + gap; // 垂直間距
-                        return node.y + 30; // 返回中心點
+                        currentY += 100 + gap; 
+                        return node.y + 30;
                     }
                     
                     const childCenters = children.map(cId => traverse(cId, level + 1));
                     const center = (childCenters[0] + childCenters[childCenters.length-1]) / 2;
-                    node.y = center - 30; // 父節點居中於子節點
+                    node.y = center - 30;
                     return center;
                 };
                 
                 roots.forEach(r => traverse(r, 0));
                 setNodes(newNodes);
                 setTimeout(() => autoFocusAll(newNodes), 50);
-            };
-
-            const handlePaste = (e) => {
-                const items = e.clipboardData?.items;
-                if (!items) return;
-                for (let i = 0; i < items.length; i++) {
-                    if (items[i].type.indexOf('image') !== -1) {
-                        const blob = items[i].getAsFile();
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            setNodes(nds => nds.map(n => n.id === selectedId ? { ...n, image: event.target.result } : n));
-                            showToast('已貼上圖片！');
-                        };
-                        reader.readAsDataURL(blob);
-                        break;
-                    }
-                }
             };
 
             const hierarchyData = useMemo(() => {
@@ -358,28 +394,37 @@
                 showToast('已刪除連接線');
             };
 
+            // 修正渲染清單邏輯：檢查父節點是否被收合
             const renderHierarchyList = (treeNodes) => {
-                return treeNodes.map(node => (
-                    <div key={node.id}>
-                        <div 
-                            className={`hierarchy-item text-sm ${selectedId === node.id ? 'active' : 'text-slate-400'}`}
-                            style={{ paddingLeft: `${node.depth * 20 + 8}px` }}
-                            onClick={() => {
-                                setSelectedId(node.id);
-                                setSideTab('edit');
-                                focusAndZoom(node.id);
-                            }}
-                        >
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: node.color }}></span>
-                            {node.text}
+                return treeNodes.map(node => {
+                    // 如果該節點在隱藏清單中，完全不渲染它及其子節點
+                    if (hiddenNodeIds.has(node.id)) return null;
+
+                    return (
+                        <div key={node.id}>
+                            <div 
+                                className={`hierarchy-item text-sm ${selectedId === node.id ? 'active' : 'text-slate-400'}`}
+                                style={{ paddingLeft: `${node.depth * 20 + 8}px` }}
+                                onClick={() => {
+                                    setSelectedId(node.id);
+                                    setSideTab('edit');
+                                    focusAndZoom(node.id);
+                                }}
+                            >
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: node.color }}></span>
+                                <span>
+                                    {node.text} {node.collapsed ? ' (已收合)' : ''}
+                                </span>
+                            </div>
+                            {/* 只有在目前節點「未收合」時，才繼續渲染子節點 */}
+                            {!node.collapsed && node.children && renderHierarchyList(node.children)}
                         </div>
-                        {node.children && renderHierarchyList(node.children)}
-                    </div>
-                ));
+                    );
+                });
             };
 
             return (
-                <div className="flex h-screen text-slate-100 overflow-hidden relative select-none bg-[#050b18]" onPaste={handlePaste}>
+                <div className="flex h-screen text-slate-100 overflow-hidden relative select-none bg-[#050b18]">
                     <div className={`toast ${toast.show ? 'show' : ''}`}>{toast.message}</div>
                     
                     {zoomImage && (
@@ -397,7 +442,7 @@
                                 <div className="bg-amber-500 p-2 rounded-xl text-slate-900 shadow-lg shadow-amber-500/20"><SvgIcon name="layout" /></div>
                                 <div>
                                     <h1 className="font-bold text-lg tracking-tight text-white uppercase italic">WEN Navigator</h1>
-                                    <p className="text-[10px] text-slate-500 font-medium tracking-widest">HORIZONTAL ENGINE</p>
+                                    <p className="text-[10px] text-slate-500 font-medium tracking-widest">SYNC COLLAPSE ENGINE</p>
                                 </div>
                             </div>
                             
@@ -448,9 +493,11 @@
                                     </defs>
                                     <g>
                                         {links.map(l => {
+                                            if (hiddenNodeIds.has(l.from) || hiddenNodeIds.has(l.to)) return null;
+                                            
                                             const s = nodes.find(n => n.id === l.from), t = nodes.find(n => n.id === l.to);
                                             if (!s || !t) return null;
-                                            // 修改為水平貝茲曲線路徑
+                                            
                                             const x1 = s.x + getNodeWidth(s.text), y1 = s.y + 30;
                                             const x2 = t.x, y2 = t.y + 30;
                                             const cp1x = x1 + (x2 - x1) / 2;
@@ -460,39 +507,54 @@
                                     </g>
                                 </svg>
 
-                                {nodes.map(n => (
-                                    <div key={n.id} style={{ left: n.x, top: n.y, width: getNodeWidth(n.text), borderColor: n.color }}
-                                         className={`node-card bg-[#111827] rounded-xl shadow-2xl flex items-center justify-center p-2 pointer-events-auto border-white/5 ${selectedId === n.id ? 'selected shadow-indigo-500/40 scale-105' : ''}`}
-                                         onMouseDown={(e) => { 
-                                            e.stopPropagation(); 
-                                            setSelectedId(n.id); 
-                                            setDraggingId(n.id); 
-                                            focusAndZoom(n.id);
-                                         }}>
-                                        
-                                        {/* Port 修改為左右兩側 */}
-                                        <div className="port port-left" onMouseDown={(e) => { 
-                                            e.stopPropagation(); 
-                                            if(selectedId && selectedId !== n.id) {
-                                                const exists = links.find(l => (l.from === selectedId && l.to === n.id));
-                                                if(!exists) setLinks([...links, {id:`link-${Date.now()}`, from:selectedId, to:n.id}]); 
-                                            }
-                                        }} />
-                                        
-                                        <textarea 
-                                            className="text-input no-scrollbar" 
-                                            value={n.text} 
-                                            onChange={(e) => setNodes(nodes.map(node => node.id === n.id ? {...node, text: e.target.value} : node))} 
-                                        />
-                                        
-                                        <div className="port port-right" onMouseDown={(e) => { e.stopPropagation(); setSelectedId(n.id); focusAndZoom(n.id); }} />
-                                        
-                                        <div className="absolute -top-3 -left-3 flex gap-1">
-                                            {n.note && <div className="bg-amber-500 text-slate-900 p-1 rounded-lg shadow-lg scale-90 border border-amber-400/50"><SvgIcon name="note" className="w-3.5 h-3.5" /></div>}
-                                            {n.image && <div className="bg-sky-500 text-slate-900 p-1 rounded-lg shadow-lg scale-90 border border-sky-400/50"><SvgIcon name="image" className="w-3.5 h-3.5" /></div>}
+                                {nodes.map(n => {
+                                    if (hiddenNodeIds.has(n.id)) return null;
+                                    
+                                    const hasChildren = links.some(l => l.from === n.id);
+
+                                    return (
+                                        <div key={n.id} style={{ left: n.x, top: n.y, width: getNodeWidth(n.text), borderColor: n.color }}
+                                             className={`node-card bg-[#111827] rounded-xl shadow-2xl flex items-center justify-center p-2 pointer-events-auto border-white/5 ${selectedId === n.id ? 'selected shadow-indigo-500/40 scale-105' : ''}`}
+                                             onMouseDown={(e) => { 
+                                                e.stopPropagation(); 
+                                                setSelectedId(n.id); 
+                                                setDraggingId(n.id); 
+                                                focusAndZoom(n.id);
+                                             }}>
+                                            
+                                            <div className="port port-left" onMouseDown={(e) => { 
+                                                e.stopPropagation(); 
+                                                if(selectedId && selectedId !== n.id) {
+                                                    const exists = links.find(l => (l.from === selectedId && l.to === n.id));
+                                                    if(!exists) setLinks([...links, {id:`link-${Date.now()}`, from:selectedId, to:n.id}]); 
+                                                }
+                                            }} />
+                                            
+                                            <textarea 
+                                                className="text-input no-scrollbar" 
+                                                value={n.text} 
+                                                onChange={(e) => setNodes(nodes.map(node => node.id === n.id ? {...node, text: e.target.value} : node))} 
+                                            />
+                                            
+                                            <div className="port port-right" onMouseDown={(e) => { e.stopPropagation(); setSelectedId(n.id); focusAndZoom(n.id); }} />
+                                            
+                                            {hasChildren && (
+                                                <div 
+                                                    className="toggle-btn" 
+                                                    onMouseDown={(e) => e.stopPropagation()}
+                                                    onClick={(e) => { e.stopPropagation(); toggleCollapse(n.id); }}
+                                                >
+                                                    <SvgIcon name={n.collapsed ? "chevronRight" : "chevronDown"} className="w-3 h-3" />
+                                                </div>
+                                            )}
+
+                                            <div className="absolute -top-3 -left-3 flex gap-1">
+                                                {n.note && <div className="bg-amber-500 text-slate-900 p-1 rounded-lg shadow-lg scale-90 border border-amber-400/50"><SvgIcon name="note" className="w-3.5 h-3.5" /></div>}
+                                                {n.image && <div className="bg-sky-500 text-slate-900 p-1 rounded-lg shadow-lg scale-90 border border-sky-400/50"><SvgIcon name="image" className="w-3.5 h-3.5" /></div>}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </main>
                     </div>
@@ -531,6 +593,16 @@
                                                 </div>
                                                 
                                                 <div className="space-y-4">
+                                                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                                                        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">階層狀態</span>
+                                                        <button 
+                                                            onClick={() => toggleCollapse(selectedId)}
+                                                            className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${selectedNode.collapsed ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'}`}
+                                                        >
+                                                            {selectedNode.collapsed ? '已收合' : '已展開'}
+                                                        </button>
+                                                    </div>
+
                                                     <div>
                                                         <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">內容文字</label>
                                                         <textarea 
