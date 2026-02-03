@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ＷＥＮ樹狀階層導覽編輯器 - 支援截圖貼上</title>
+    <title>ＷＥＮ樹狀階層導覽編輯器 - 支援資料查找</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -116,6 +116,7 @@
         }
         .hierarchy-item:hover { background: rgba(99, 102, 241, 0.15); color: white; }
         .hierarchy-item.active { background: rgba(99, 102, 241, 0.25); color: #818cf8; }
+        .hierarchy-item.highlight { background: rgba(245, 158, 11, 0.15); color: #f59e0b; font-weight: bold; }
 
         .toast {
             position: fixed;
@@ -149,6 +150,18 @@
             animation: fadeIn 0.3s ease;
         }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .search-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+            font-size: 0.875rem;
+            width: 100%;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .search-input:focus { border-color: #f59e0b; background: rgba(255, 255, 255, 0.08); }
 
         .link-item {
             display: flex;
@@ -189,7 +202,8 @@
                     </React.Fragment>
                 ),
                 list: <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />,
-                settings: <path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 0 1 0 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 0 1 0-.255c.007-.378.138.75-.43-.99l-1.004-.828a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281Z" />
+                settings: <path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 0 1 0 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 0 1 0-.255c.007-.378.138.75-.43-.99l-1.004-.828a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281Z" />,
+                search: <path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
             };
             return (
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
@@ -206,6 +220,7 @@
             const [transform, setTransform] = useState({ x: 0, y: 0, scale: 0.8 });
             const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
             const [sideTab, setSideTab] = useState('edit');
+            const [searchQuery, setSearchQuery] = useState('');
             const [draggingId, setDraggingId] = useState(null);
             const [isCanvasDragging, setIsCanvasDragging] = useState(false);
             const [selectedId, setSelectedId] = useState('root');
@@ -223,10 +238,9 @@
 
             const getNodeWidth = (text) => Math.min(Math.max(160, 140 + (text?.length || 0) * 10), 400);
 
-            // Handle Paste functionality for screenshots
+            // 貼上截圖功能
             const handlePaste = useCallback((e) => {
                 if (!selectedId) return;
-                
                 const items = e.clipboardData.items;
                 for (let i = 0; i < items.length; i++) {
                     if (items[i].type.indexOf("image") !== -1) {
@@ -249,7 +263,7 @@
                 return () => document.removeEventListener('paste', handlePaste);
             }, [handlePaste]);
 
-            // 遞迴獲取所有被隱藏（收合）的子節點 ID
+            // 遞迴獲取隱藏狀態
             const getHiddenNodeIds = useCallback(() => {
                 const hidden = new Set();
                 const adj = {};
@@ -258,18 +272,13 @@
                 const traverse = (nodeId, isParentCollapsed) => {
                     const node = nodes.find(n => n.id === nodeId);
                     if (!node) return;
-                    
-                    if (isParentCollapsed) {
-                        hidden.add(nodeId);
-                    }
-                    
+                    if (isParentCollapsed) hidden.add(nodeId);
                     const children = adj[nodeId] || [];
                     children.forEach(childId => traverse(childId, isParentCollapsed || node.collapsed));
                 };
 
                 const roots = nodes.filter(n => !links.some(l => l.to === n.id));
                 roots.forEach(root => traverse(root.id, root.collapsed));
-                
                 return hidden;
             }, [nodes, links]);
 
@@ -318,14 +327,8 @@
                 const parent = nodes.find(n => n.id === selectedId) || nodes[0];
                 const newId = `node-${Date.now()}`;
                 const newNode = {
-                    id: newId,
-                    text: '新分支',
-                    x: parent.x + 300, 
-                    y: parent.y + (Math.random() * 100 - 50),
-                    color: parent.color,
-                    note: '',
-                    image: null,
-                    collapsed: false
+                    id: newId, text: '新分支', x: parent.x + 300, y: parent.y + (Math.random() * 100 - 50),
+                    color: parent.color, note: '', image: null, collapsed: false
                 };
                 const updatedNodes = [...nodes, newNode];
                 setNodes(updatedNodes);
@@ -374,25 +377,21 @@
                 const adj = {};
                 links.forEach(l => { if(!adj[l.from]) adj[l.from] = []; adj[l.from].push(l.to); });
                 const roots = nodes.filter(n => !links.some(l => l.to === n.id)).map(n => n.id);
-                
                 const traverse = (id, level) => {
                     const node = newNodes.find(n => n.id === id);
                     if(!node) return 0;
                     const children = adj[id] || [];
                     node.x = 1000 + level * levelW;
-                    
                     if(children.length === 0) {
                         node.y = currentY;
                         currentY += 100 + gap; 
                         return node.y + 30;
                     }
-                    
                     const childCenters = children.map(cId => traverse(cId, level + 1));
                     const center = (childCenters[0] + childCenters[childCenters.length-1]) / 2;
                     node.y = center - 30;
                     return center;
                 };
-                
                 roots.forEach(r => traverse(r, 0));
                 setNodes(newNodes);
                 setTimeout(() => autoFocusAll(newNodes), 50);
@@ -422,25 +421,30 @@
 
             const renderHierarchyList = (treeNodes) => {
                 return treeNodes.map(node => {
-                    if (hiddenNodeIds.has(node.id)) return null;
+                    const isMatch = searchQuery && node.text.toLowerCase().includes(searchQuery.toLowerCase());
+                    // 如果正在搜尋且不匹配，且子節點也沒有匹配，則隱藏（這裡簡化處理，主要靠視覺高亮）
+                    
+                    // 如果節點被隱藏且目前沒有在搜尋該節點，則跳過
+                    if (!isMatch && hiddenNodeIds.has(node.id)) return null;
 
                     return (
                         <div key={node.id}>
                             <div 
-                                className={`hierarchy-item text-sm ${selectedId === node.id ? 'active' : 'text-slate-400'}`}
+                                className={`hierarchy-item text-sm ${selectedId === node.id ? 'active' : ''} ${isMatch ? 'highlight' : 'text-slate-400'}`}
                                 style={{ paddingLeft: `${node.depth * 20 + 8}px` }}
                                 onClick={() => {
                                     setSelectedId(node.id);
-                                    setSideTab('edit');
                                     focusAndZoom(node.id);
                                 }}
                             >
                                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: node.color }}></span>
-                                <span>
+                                <span className="flex-grow truncate">
                                     {node.text} {node.collapsed ? ' (已收合)' : ''}
                                 </span>
+                                {isMatch && <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>}
                             </div>
-                            {!node.collapsed && node.children && renderHierarchyList(node.children)}
+                            {/* 如果有搜尋，則強制展開顯示匹配項 */}
+                            {(searchQuery || !node.collapsed) && node.children && renderHierarchyList(node.children)}
                         </div>
                     );
                 });
@@ -465,7 +469,7 @@
                                 <div className="bg-amber-500 p-2 rounded-xl text-slate-900 shadow-lg shadow-amber-500/20"><SvgIcon name="layout" /></div>
                                 <div>
                                     <h1 className="font-bold text-lg tracking-tight text-white uppercase italic">WEN Navigator</h1>
-                                    <p className="text-[10px] text-slate-500 font-medium tracking-widest">SCREENSHOT CAPABLE</p>
+                                    <p className="text-[10px] text-slate-500 font-medium tracking-widest">SEARCH & PASTE READY</p>
                                 </div>
                             </div>
                             
@@ -517,10 +521,8 @@
                                     <g>
                                         {links.map(l => {
                                             if (hiddenNodeIds.has(l.from) || hiddenNodeIds.has(l.to)) return null;
-                                            
                                             const s = nodes.find(n => n.id === l.from), t = nodes.find(n => n.id === l.to);
                                             if (!s || !t) return null;
-                                            
                                             const x1 = s.x + getNodeWidth(s.text), y1 = s.y + 30;
                                             const x2 = t.x, y2 = t.y + 30;
                                             const cp1x = x1 + (x2 - x1) / 2;
@@ -532,17 +534,16 @@
 
                                 {nodes.map(n => {
                                     if (hiddenNodeIds.has(n.id)) return null;
-                                    
                                     const hasChildren = links.some(l => l.from === n.id);
+                                    const isSearching = searchQuery && n.text.toLowerCase().includes(searchQuery.toLowerCase());
 
                                     return (
                                         <div key={n.id} style={{ left: n.x, top: n.y, width: getNodeWidth(n.text), borderColor: n.color }}
-                                             className={`node-card bg-[#111827] rounded-xl shadow-2xl flex items-center justify-center p-2 pointer-events-auto border-white/5 ${selectedId === n.id ? 'selected shadow-indigo-500/40 scale-105' : ''}`}
+                                             className={`node-card bg-[#111827] rounded-xl shadow-2xl flex items-center justify-center p-2 pointer-events-auto border-white/5 ${selectedId === n.id ? 'selected shadow-indigo-500/40 scale-105' : ''} ${isSearching ? 'ring-2 ring-amber-500 ring-offset-4 ring-offset-[#050b18]' : ''}`}
                                              onMouseDown={(e) => { 
                                                 e.stopPropagation(); 
                                                 setSelectedId(n.id); 
                                                 setDraggingId(n.id); 
-                                                focusAndZoom(n.id);
                                              }}>
                                             
                                             <div className="port port-left" onMouseDown={(e) => { 
@@ -591,10 +592,10 @@
                             <React.Fragment>
                                 <div className="flex border-b border-white/5">
                                     <button onClick={() => setSideTab('edit')} className={`flex-1 tab-btn flex items-center justify-center gap-2 ${sideTab === 'edit' ? 'active' : ''}`}>
-                                        <SvgIcon name="settings" className="w-4 h-4" /> 編輯屬性
+                                        <SvgIcon name="settings" className="w-4 h-4" /> 屬性編輯
                                     </button>
                                     <button onClick={() => setSideTab('hierarchy')} className={`flex-1 tab-btn flex items-center justify-center gap-2 ${sideTab === 'hierarchy' ? 'active' : ''}`}>
-                                        <SvgIcon name="list" className="w-4 h-4" /> 階層導覽
+                                        <SvgIcon name="list" className="w-4 h-4" /> 階層查找
                                     </button>
                                 </div>
 
@@ -657,7 +658,7 @@
                                                     </div>
 
                                                     <div>
-                                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">參考圖片</label>
+                                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">參考圖片 (支援貼上)</label>
                                                         {selectedNode.image ? (
                                                             <div className="relative group rounded-xl overflow-hidden border border-white/10">
                                                                 <img src={selectedNode.image} className="w-full h-40 object-cover cursor-zoom-in" onClick={() => setZoomImage(selectedNode.image)} />
@@ -668,7 +669,7 @@
                                                             <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer"
                                                                  onClick={() => imageInputRef.current.click()}>
                                                                 <SvgIcon name="image" className="w-8 h-8 mx-auto mb-2 text-slate-600" />
-                                                                <p className="text-xs text-slate-500">點擊上傳或直接 Ctrl+V 貼上</p>
+                                                                <p className="text-xs text-slate-500">點擊上傳或貼上圖片</p>
                                                                 <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={(e) => {
                                                                     const file = e.target.files[0];
                                                                     if (!file) return;
@@ -678,22 +679,6 @@
                                                                 }} />
                                                             </div>
                                                         )}
-                                                    </div>
-
-                                                    <div>
-                                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">子連線管理 ({outgoingLinks.length})</label>
-                                                        <div className="space-y-1">
-                                                            {outgoingLinks.map(l => {
-                                                                const target = nodes.find(n => n.id === l.to);
-                                                                return (
-                                                                    <div key={l.id} className="link-item group">
-                                                                        <span className="text-xs truncate max-w-[180px] text-slate-400">→ {target?.text || '未知節點'}</span>
-                                                                        <button onClick={() => deleteLink(l.id)} className="text-slate-600 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-all"><SvgIcon name="x" className="w-4 h-4" /></button>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                            {outgoingLinks.length === 0 && <p className="text-xs text-slate-600 italic py-2">目前沒有向外的連線</p>}
-                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -705,9 +690,33 @@
                                         )
                                     ) : (
                                         <div className="space-y-4">
-                                            <h2 className="text-amber-500 font-bold flex items-center gap-2 uppercase tracking-tighter mb-4"><SvgIcon name="list" /> Hierarchy</h2>
-                                            <div className="bg-slate-800/30 rounded-xl p-2 border border-white/5">
+                                            <h2 className="text-amber-500 font-bold flex items-center gap-2 uppercase tracking-tighter mb-4"><SvgIcon name="search" /> Data Finder</h2>
+                                            
+                                            <div className="relative">
+                                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+                                                    <SvgIcon name="search" className="w-4 h-4" />
+                                                </div>
+                                                <input 
+                                                    type="text"
+                                                    placeholder="輸入關鍵字查找..."
+                                                    className="search-input"
+                                                    value={searchQuery}
+                                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                                />
+                                                {searchQuery && (
+                                                    <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                                                        <SvgIcon name="x" className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <div className="bg-slate-800/30 rounded-xl p-2 border border-white/5 min-h-[300px]">
                                                 {renderHierarchyList(hierarchyData)}
+                                                {searchQuery && nodes.filter(n => n.text.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                                                    <div className="text-center py-10 text-slate-600 text-xs">
+                                                        找不到相關內容
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     )}
