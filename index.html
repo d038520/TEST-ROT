@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ＷＥＮ樹狀階層導覽編輯器 - 支援資料查找</title>
+    <title>ＷＥＮ樹狀階層導覽編輯器 - 支援關係管理</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -163,16 +163,18 @@
         }
         .search-input:focus { border-color: #f59e0b; background: rgba(255, 255, 255, 0.08); }
 
-        .link-item {
+        .link-badge {
             display: flex;
             align-items: center;
             justify-content: space-between;
             background: rgba(255, 255, 255, 0.03);
             padding: 0.5rem 0.75rem;
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
             border: 1px solid rgba(255, 255, 255, 0.05);
-            margin-bottom: 0.5rem;
+            margin-top: 0.5rem;
+            transition: all 0.2s;
         }
+        .link-badge:hover { background: rgba(255, 255, 255, 0.06); }
     </style>
 </head>
 <body>
@@ -412,20 +414,20 @@
             }, [nodes, links]);
 
             const selectedNode = useMemo(() => nodes.find(n => n.id === selectedId), [nodes, selectedId]);
+            
+            // 獲取與當前節點相關的連接線
+            const incomingLinks = useMemo(() => links.filter(l => l.to === selectedId), [links, selectedId]);
             const outgoingLinks = useMemo(() => links.filter(l => l.from === selectedId), [links, selectedId]);
 
             const deleteLink = (linkId) => {
                 setLinks(prev => prev.filter(l => l.id !== linkId));
-                showToast('已刪除連接線');
+                showToast('已切斷父子關係');
             };
 
             const renderHierarchyList = (treeNodes) => {
                 return treeNodes.map(node => {
                     const isMatch = searchQuery && node.text.toLowerCase().includes(searchQuery.toLowerCase());
-                    // 如果正在搜尋且不匹配，且子節點也沒有匹配，則隱藏（這裡簡化處理，主要靠視覺高亮）
-                    
-                    // 如果節點被隱藏且目前沒有在搜尋該節點，則跳過
-                    if (!isMatch && hiddenNodeIds.has(node.id)) return null;
+                    if (!isMatch && hiddenNodeIds.has(node.id) && !searchQuery) return null;
 
                     return (
                         <div key={node.id}>
@@ -443,7 +445,6 @@
                                 </span>
                                 {isMatch && <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>}
                             </div>
-                            {/* 如果有搜尋，則強制展開顯示匹配項 */}
                             {(searchQuery || !node.collapsed) && node.children && renderHierarchyList(node.children)}
                         </div>
                     );
@@ -469,7 +470,7 @@
                                 <div className="bg-amber-500 p-2 rounded-xl text-slate-900 shadow-lg shadow-amber-500/20"><SvgIcon name="layout" /></div>
                                 <div>
                                     <h1 className="font-bold text-lg tracking-tight text-white uppercase italic">WEN Navigator</h1>
-                                    <p className="text-[10px] text-slate-500 font-medium tracking-widest">SEARCH & PASTE READY</p>
+                                    <p className="text-[10px] text-slate-500 font-medium tracking-widest">RELATIONSHIP MANAGEMENT</p>
                                 </div>
                             </div>
                             
@@ -604,7 +605,7 @@
                                         selectedNode ? (
                                             <div className="space-y-6">
                                                 <div className="flex justify-between items-center mb-2">
-                                                    <h2 className="text-amber-500 font-bold flex items-center gap-2 uppercase tracking-tighter"><SvgIcon name="note" /> Node Editor</h2>
+                                                    <h2 className="text-amber-500 font-bold flex items-center gap-2 uppercase tracking-tighter"><SvgIcon name="note" /> Node Inspector</h2>
                                                     <div className="flex gap-2">
                                                         <button onClick={() => focusAndZoom(selectedId)} className="bg-indigo-600/20 text-indigo-400 p-2 rounded-lg hover:bg-indigo-600/30"><SvgIcon name="locate" className="w-4 h-4" /></button>
                                                         <button onClick={() => {
@@ -617,30 +618,52 @@
                                                 </div>
                                                 
                                                 <div className="space-y-4">
-                                                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                                                        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">階層狀態</span>
-                                                        <button 
-                                                            onClick={() => toggleCollapse(selectedId)}
-                                                            className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${selectedNode.collapsed ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'}`}
-                                                        >
-                                                            {selectedNode.collapsed ? '已收合' : '已展開'}
-                                                        </button>
-                                                    </div>
-
                                                     <div>
                                                         <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">內容文字</label>
-                                                        <textarea 
-                                                            className="w-full bg-slate-800/50 border border-white/10 rounded-xl p-3 text-sm focus:border-amber-500/50 outline-none transition-all min-h-[80px]"
+                                                        <input 
+                                                            className="w-full bg-slate-800/50 border border-white/10 rounded-xl px-3 py-2 text-sm focus:border-amber-500/50 outline-none transition-all"
                                                             value={selectedNode.text}
                                                             onChange={(e) => setNodes(nodes.map(n => n.id === selectedId ? { ...n, text: e.target.value } : n))}
                                                         />
                                                     </div>
 
+                                                    {/* 父子連接關係管理區塊 */}
+                                                    <div>
+                                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">階層關係 (Hierarchy)</label>
+                                                        <div className="space-y-1">
+                                                            {incomingLinks.length > 0 ? (
+                                                                incomingLinks.map(l => {
+                                                                    const parent = nodes.find(n => n.id === l.from);
+                                                                    return (
+                                                                        <div key={l.id} className="link-badge">
+                                                                            <span className="text-[10px] text-indigo-400 font-bold uppercase px-1.5 py-0.5 bg-indigo-400/10 rounded mr-2">From</span>
+                                                                            <span className="text-xs text-slate-300 truncate flex-grow italic">{parent?.text || 'Unknown'}</span>
+                                                                            <button onClick={() => deleteLink(l.id)} className="text-slate-500 hover:text-red-400 transition-colors p-1 ml-2"><SvgIcon name="trash" className="w-4 h-4" /></button>
+                                                                        </div>
+                                                                    );
+                                                                })
+                                                            ) : (
+                                                                <div className="text-[10px] text-slate-600 italic px-2">無父節點 (根節點)</div>
+                                                            )}
+                                                            
+                                                            {outgoingLinks.length > 0 && outgoingLinks.map(l => {
+                                                                const child = nodes.find(n => n.id === l.to);
+                                                                return (
+                                                                    <div key={l.id} className="link-badge">
+                                                                        <span className="text-[10px] text-amber-500 font-bold uppercase px-1.5 py-0.5 bg-amber-500/10 rounded mr-2">To</span>
+                                                                        <span className="text-xs text-slate-300 truncate flex-grow italic">{child?.text || 'Unknown'}</span>
+                                                                        <button onClick={() => deleteLink(l.id)} className="text-slate-500 hover:text-red-400 transition-colors p-1 ml-2"><SvgIcon name="trash" className="w-4 h-4" /></button>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+
                                                     <div>
                                                         <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">詳細筆記</label>
                                                         <textarea 
-                                                            placeholder="輸入更多補充資訊..."
-                                                            className="w-full bg-slate-800/50 border border-white/10 rounded-xl p-3 text-sm focus:border-indigo-500/50 outline-none transition-all min-h-[120px]"
+                                                            placeholder="補充筆記..."
+                                                            className="w-full bg-slate-800/50 border border-white/10 rounded-xl p-3 text-sm focus:border-indigo-500/50 outline-none transition-all min-h-[100px] no-scrollbar"
                                                             value={selectedNode.note}
                                                             onChange={(e) => setNodes(nodes.map(n => n.id === selectedId ? { ...n, note: e.target.value } : n))}
                                                         />
@@ -651,25 +674,25 @@
                                                         <div className="flex gap-2 flex-wrap">
                                                             {['#f59e0b', '#ef4444', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#94a3b8'].map(c => (
                                                                 <button key={c} onClick={() => setNodes(nodes.map(n => n.id === selectedId ? { ...n, color: c } : n))}
-                                                                    className={`w-8 h-8 rounded-full border-2 transition-transform ${selectedNode.color === c ? 'scale-125 border-white' : 'border-transparent'}`}
+                                                                    className={`w-7 h-7 rounded-full border-2 transition-transform ${selectedNode.color === c ? 'scale-110 border-white' : 'border-transparent'}`}
                                                                     style={{ backgroundColor: c }} />
                                                             ))}
                                                         </div>
                                                     </div>
 
                                                     <div>
-                                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">參考圖片 (支援貼上)</label>
+                                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">參考圖片</label>
                                                         {selectedNode.image ? (
                                                             <div className="relative group rounded-xl overflow-hidden border border-white/10">
-                                                                <img src={selectedNode.image} className="w-full h-40 object-cover cursor-zoom-in" onClick={() => setZoomImage(selectedNode.image)} />
+                                                                <img src={selectedNode.image} className="w-full h-32 object-cover cursor-zoom-in" onClick={() => setZoomImage(selectedNode.image)} />
                                                                 <button onClick={() => setNodes(nodes.map(n => n.id === selectedId ? { ...n, image: null } : n))}
-                                                                    className="absolute top-2 right-2 bg-red-500 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><SvgIcon name="trash" className="w-4 h-4" /></button>
+                                                                    className="absolute top-2 right-2 bg-red-500/80 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><SvgIcon name="trash" className="w-4 h-4" /></button>
                                                             </div>
                                                         ) : (
-                                                            <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer"
+                                                            <div className="border-2 border-dashed border-white/10 rounded-xl p-4 text-center hover:bg-white/5 transition-colors cursor-pointer"
                                                                  onClick={() => imageInputRef.current.click()}>
-                                                                <SvgIcon name="image" className="w-8 h-8 mx-auto mb-2 text-slate-600" />
-                                                                <p className="text-xs text-slate-500">點擊上傳或貼上圖片</p>
+                                                                <SvgIcon name="image" className="w-6 h-6 mx-auto mb-1 text-slate-600" />
+                                                                <p className="text-[10px] text-slate-500 uppercase font-bold">Paste or Upload</p>
                                                                 <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={(e) => {
                                                                     const file = e.target.files[0];
                                                                     if (!file) return;
@@ -685,7 +708,7 @@
                                         ) : (
                                             <div className="h-full flex flex-col items-center justify-center text-slate-600 text-center p-4">
                                                 <SvgIcon name="locate" className="w-12 h-12 mb-4 opacity-20" />
-                                                <p className="text-sm">請在畫布上選擇節點<br/>以進行詳細編輯</p>
+                                                <p className="text-sm italic">Select a node on canvas<br/>to edit properties</p>
                                             </div>
                                         )
                                     ) : (
@@ -698,7 +721,7 @@
                                                 </div>
                                                 <input 
                                                     type="text"
-                                                    placeholder="輸入關鍵字查找..."
+                                                    placeholder="查找節點..."
                                                     className="search-input"
                                                     value={searchQuery}
                                                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -712,11 +735,6 @@
 
                                             <div className="bg-slate-800/30 rounded-xl p-2 border border-white/5 min-h-[300px]">
                                                 {renderHierarchyList(hierarchyData)}
-                                                {searchQuery && nodes.filter(n => n.text.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
-                                                    <div className="text-center py-10 text-slate-600 text-xs">
-                                                        找不到相關內容
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
                                     )}
